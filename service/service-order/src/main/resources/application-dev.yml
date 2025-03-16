@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: service-order
+  cloud:
+    nacos:
+      config:
+        username: nacos
+        password: nacos
+        server-addr: 192.168.244.140:8848
+        file-extension: yaml
+        shared-configs:
+          - dataId: common-account.yaml
+            refresh: true
+  config:
+    import:
+      - optional:nacos:${spring.application.name}-dev.${spring.cloud.nacos.config.file-extension}
