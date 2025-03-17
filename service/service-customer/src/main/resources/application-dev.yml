@@ -1,6 +1,7 @@
 spring:
   application:
     name: service-customer
+
   cloud:
     nacos:
       config:
@@ -14,3 +15,4 @@ spring:
   config:
     import:
       - optional:nacos:${spring.application.name}-dev.${spring.cloud.nacos.config.file-extension}
+      - optional:nacos:common-account.yaml

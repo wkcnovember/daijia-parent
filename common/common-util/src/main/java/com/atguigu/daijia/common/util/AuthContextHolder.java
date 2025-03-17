@@ -5,7 +5,7 @@ package com.atguigu.daijia.common.util;
  */
 public class AuthContextHolder {
 
-    private static ThreadLocal<Long> userId = new ThreadLocal<Long>();
+    private static final ThreadLocal<Long> userId = new ThreadLocal<Long>();
 
     public static void setUserId(Long _userId) {
         userId.set(_userId);
@@ -18,5 +18,6 @@ public class AuthContextHolder {
     public static void removeUserId() {
         userId.remove();
     }
+
 
 }

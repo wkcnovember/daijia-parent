@@ -1,7 +1,9 @@
 package com.atguigu.daijia.model.entity.dispatch;
 
 import com.atguigu.daijia.model.entity.base.BaseEntity;
+import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
@@ -15,6 +17,7 @@ public class OrderJob extends BaseEntity {
 
 	@Schema(description = "订单id")
 	@TableField("order_id")
+	@TableId(type = IdType.AUTO)
 	private Long orderId;
 
 	@Schema(description = "任务id")

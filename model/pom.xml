@@ -12,6 +12,17 @@
     <artifactId>model</artifactId>
 
     <dependencies>
+        <!-- MapStruct 核心库 -->
+        <dependency>
+            <groupId>org.mapstruct</groupId>
+            <artifactId>mapstruct</artifactId>
+        </dependency>
+        <!-- 注解处理器 -->
+        <dependency>
+            <groupId>org.mapstruct</groupId>
+            <artifactId>mapstruct-processor</artifactId>
+        </dependency>
+
         <!--lombok用来简化实体类-->
         <dependency>
             <groupId>org.projectlombok</groupId>
