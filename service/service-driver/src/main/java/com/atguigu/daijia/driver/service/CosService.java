@@ -6,5 +6,5 @@ import org.springframework.web.multipart.MultipartFile;
 public interface CosService {
 
 
-    CosUploadVo upload(MultipartFile file);
+    CosUploadVo upload(MultipartFile file,String type);
 }

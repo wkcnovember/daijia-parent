@@ -9,7 +9,6 @@ import com.atguigu.daijia.driver.service.DriverService;
 import com.atguigu.daijia.model.vo.driver.DriverLoginVo;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -50,10 +49,7 @@ public class DriverServiceImpl implements DriverService {
     @Override
     public DriverLoginVo getDriverLoginInfo(Long driverId) {
         Result<DriverLoginVo> loginVoResult = driverInfoFeignClient.getDriverInfo(driverId);
-        if (!ResultCodeEnum.SUCCESS.getCode().equals(loginVoResult.getCode()) ||
-                Objects.isNull(loginVoResult.getData())) {
-            throw new GuiguException(ResultCodeEnum.DATA_ERROR);
-        }
+        loginVoResult.throwOnFailure();
         return loginVoResult.getData();
     }
 }

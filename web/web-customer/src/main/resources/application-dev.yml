@@ -1,4 +1,5 @@
 spring:
+
   application:
     name: web-customer
   cloud:
@@ -6,7 +7,6 @@ spring:
       config:
         username: nacos
         password: nacos
-
         server-addr: 192.168.244.140:8848
         file-extension: yaml
         shared-configs:
@@ -16,3 +16,4 @@ spring:
     import:
       - optional:nacos:${spring.application.name}-dev.${spring.cloud.nacos.config.file-extension}
       - optional:nacos:common-account.yaml
+

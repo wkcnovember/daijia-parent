@@ -29,7 +29,7 @@ public class GuiguLoginAspect {
     // 环绕通知，登录判断
     // 切入点表达式：指定对哪些规则的方法进行增强
     @Around("execution(* com.atguigu.daijia.*.controller.*.*(..)) && @annotation(kjyLogin)")
-    public Object login(ProceedingJoinPoint proceedingJoinPoint, KjyLogin kjyLogin)  {
+    public Object login(ProceedingJoinPoint proceedingJoinPoint, KjyLogin kjyLogin) throws Throwable {
 
         // 1 获取request对象
         RequestAttributes attributes = RequestContextHolder.getRequestAttributes();
@@ -58,22 +58,20 @@ public class GuiguLoginAspect {
         }
 
         // 5 查询redis对应用户id，把用户id放到ThreadLocal里面
-        if (StringUtils.hasText(customerId)) {
+
             AuthContextHolder.setUserId(Long.parseLong(customerId));
-        }
+
 
         // 6 执行业务方法
         try {
             return proceedingJoinPoint.proceed();
-        } catch (Throwable e) {
-            log.error("认证切面报错=={}",e.getMessage());
-            throw new GuiguException(ResultCodeEnum.LOGIN_AUTH);
+        }
 
-            // 防止内存泄露~
-        } finally {
+        finally {
             log.info("Cleaned ThreadLocal for thread: {}", Thread.currentThread().getName());
             AuthContextHolder.removeUserId();
         }
+
 
     }
 }

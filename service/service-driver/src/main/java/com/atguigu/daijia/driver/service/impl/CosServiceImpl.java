@@ -2,7 +2,6 @@ package com.atguigu.daijia.driver.service.impl;
 
 import cn.hutool.core.date.DateUtil;
 import com.atguigu.daijia.common.execption.GuiguException;
-import com.atguigu.daijia.common.result.Result;
 import com.atguigu.daijia.common.result.ResultCodeEnum;
 import com.atguigu.daijia.driver.service.CosService;
 import com.atguigu.daijia.model.vo.driver.CosUploadVo;
@@ -11,17 +10,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.FileStorageService;
 import org.dromara.x.file.storage.core.constant.Constant;
-import org.dromara.x.file.storage.core.platform.FileStorage;
 import org.dromara.x.file.storage.core.presigned.GeneratePresignedUrlResult;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
 
 @Slf4j
 @Service
@@ -33,9 +28,9 @@ public class CosServiceImpl implements CosService {
     private FileStorageService fileStorageService;
 
     @Override
-    public CosUploadVo upload(MultipartFile file) {
+    public CosUploadVo upload(MultipartFile file, String type) {
         FileInfo fileInfo;
-        String objectName = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy/MM/dd")) + "/";
+        String objectName = String.format("%s/%s/", LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy/MM/dd")), type);
         try {
             // 指定oss保存文件路径
             // 上传图片，成功返回文件信息

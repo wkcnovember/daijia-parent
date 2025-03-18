@@ -1,5 +1,6 @@
 package com.atguigu.daijia.driver.controller;
 
+import com.atguigu.daijia.common.auth.KjyLogin;
 import com.atguigu.daijia.common.result.Result;
 import com.atguigu.daijia.driver.service.CosService;
 import com.atguigu.daijia.model.vo.driver.CosUploadVo;
@@ -23,12 +24,12 @@ public class CosController {
     private CosService cosService;
 
     //文件上传接口
-    @Operation(summary = "上传")
-    //@GuiguLogin
+    @Operation(summary = "上传文件~")
+    @KjyLogin
     @PostMapping("/upload")
-    public Result<CosUploadVo> upload(@RequestPart("file") MultipartFile file
-                                      /*@RequestParam(name = "path",defaultValue = "auth") String path*/) {
-        CosUploadVo cosUploadVo = cosService.uploadFile(file);
+    public Result<CosUploadVo> upload(@RequestPart("file") MultipartFile file,
+                                      @RequestParam(name = "path",defaultValue = "auth") String type) {
+        CosUploadVo cosUploadVo = cosService.uploadFile(file,type);
         return Result.ok(cosUploadVo);
     }
 

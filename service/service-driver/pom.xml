@@ -13,9 +13,15 @@
     <version>1.0</version>
 
     <dependencies>
+
         <dependency>
             <groupId>com.qcloud</groupId>
             <artifactId>cos_api</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.tencentcloudapi</groupId>
+            <artifactId>tencentcloud-sdk-java</artifactId>
         </dependency>
 
         <!-- 文件上传-->

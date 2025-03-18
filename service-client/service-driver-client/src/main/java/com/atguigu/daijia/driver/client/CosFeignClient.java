@@ -13,7 +13,7 @@ import org.springframework.web.multipart.MultipartFile;
 public interface CosFeignClient {
 
 
-    //文件上传
+    // 文件上传
     @PostMapping(value = "/cos/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    Result<CosUploadVo> upload(@RequestPart("file") MultipartFile file/*, @RequestParam("path") String path*/);
+    Result<CosUploadVo> upload(@RequestPart("file") MultipartFile file, @RequestParam("type") String type);
 }

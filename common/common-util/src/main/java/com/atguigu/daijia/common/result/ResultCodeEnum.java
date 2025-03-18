@@ -26,6 +26,8 @@ public enum ResultCodeEnum {
     LOGIN_AUTH(208, "未登陆"),
     LOGIN_ERROR(208, "登录失败,请稍后再试"),
     PERMISSION(209, "没有权限"),
+    ID_CARD_AUTH_ERROR(211, "照片未检测到身份证"),
+    DRIVER_LICENSE_AUTH_ERROR(212, "照片未检测到驾驶证"),
     ACCOUNT_ERROR(214, "账号不正确"),
     PASSWORD_ERROR(215, "密码不正确"),
     PHONE_CODE_ERROR(215, "手机验证码不正确"),

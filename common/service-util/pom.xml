@@ -17,6 +17,11 @@
             <artifactId>common-util</artifactId>
             <version>1.0</version>
         </dependency>
+        <!-- 身份认证 -->
+        <dependency>
+            <groupId>com.tencentcloudapi</groupId>
+            <artifactId>tencentcloud-sdk-java</artifactId>
+        </dependency>
         <dependency>
             <groupId>com.atguigu.daijia</groupId>
             <artifactId>model</artifactId>

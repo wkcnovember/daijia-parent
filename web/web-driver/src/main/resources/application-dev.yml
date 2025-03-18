@@ -2,6 +2,14 @@ spring:
   application:
     name: web-driver
   cloud:
+    openfeign:
+      client:
+        config:
+          default:
+            #连接超时时间
+            connectTimeout: 100000
+            #读取超时时间
+            readTimeout: 100000
     nacos:
       config:
         username: nacos
