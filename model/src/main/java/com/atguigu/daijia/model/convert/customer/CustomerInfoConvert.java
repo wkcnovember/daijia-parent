@@ -18,6 +18,6 @@ import org.mapstruct.Mapping;
 public interface CustomerInfoConvert {
 
     // 自动继承componentModel、unmapped策略及uses依赖
-    CustomerLoginVo toVo(CustomerInfo customerInfo);
+    CustomerLoginVo toCustomerLoginVo(CustomerInfo customerInfo);
 }
 

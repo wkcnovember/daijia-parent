@@ -1,4 +1,4 @@
-package com.atguigu.daijia.customer.config;
+package com.atguigu.daijia.common.config.wechat;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;

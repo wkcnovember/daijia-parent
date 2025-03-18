@@ -24,6 +24,7 @@ public enum ResultCodeEnum {
     VALIDATECODE_ERROR(218 , "验证码错误"),
 
     LOGIN_AUTH(208, "未登陆"),
+    LOGIN_ERROR(208, "登录失败,请稍后再试"),
     PERMISSION(209, "没有权限"),
     ACCOUNT_ERROR(214, "账号不正确"),
     PASSWORD_ERROR(215, "密码不正确"),

@@ -1,14 +1,12 @@
-package com.atguigu.daijia.customer.config;
+package com.atguigu.daijia.common.config.wechat;
 
 import cn.binarywang.wx.miniapp.api.WxMaService;
 import cn.binarywang.wx.miniapp.api.impl.WxMaServiceImpl;
 import cn.binarywang.wx.miniapp.config.impl.WxMaDefaultConfigImpl;
 import jakarta.annotation.Resource;
 import me.chanjar.weixin.common.service.WxService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.stereotype.Component;
 
 /**
  * @Author 柯佳元

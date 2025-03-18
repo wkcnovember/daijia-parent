@@ -5,10 +5,12 @@ import cn.binarywang.wx.miniapp.bean.WxMaJscode2SessionResult;
 import cn.binarywang.wx.miniapp.bean.WxMaPhoneNumberInfo;
 import com.atguigu.daijia.common.execption.GuiguException;
 import com.atguigu.daijia.common.result.ResultCodeEnum;
+import com.atguigu.daijia.common.util.IpUtil;
 import com.atguigu.daijia.customer.mapper.CustomerInfoMapper;
 import com.atguigu.daijia.customer.mapper.CustomerLoginLogMapper;
 import com.atguigu.daijia.customer.service.CustomerInfoService;
 import com.atguigu.daijia.model.convert.customer.CustomerInfoConvert;
+import com.atguigu.daijia.model.entity.base.BaseEntity;
 import com.atguigu.daijia.model.entity.customer.CustomerInfo;
 import com.atguigu.daijia.model.entity.customer.CustomerLoginLog;
 import com.atguigu.daijia.model.form.customer.UpdateWxPhoneForm;
@@ -22,6 +24,9 @@ import me.chanjar.weixin.common.error.WxErrorException;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.context.request.RequestContextHolder;
+
+import java.util.Objects;
 
 @Slf4j
 @Service
@@ -75,7 +80,7 @@ public class CustomerInfoServiceImpl extends ServiceImpl<CustomerInfoMapper, Cus
     public CustomerLoginVo getCustomerInfo(Long customerId) {
         CustomerInfo customerInfo = getById(customerId);
         if(null == customerInfo) return null;
-        CustomerLoginVo customerLoginVo = customerInfoConvert.toVo(customerInfo);
+        CustomerLoginVo customerLoginVo = customerInfoConvert.toCustomerLoginVo(customerInfo);
         String phone = customerInfo.getPhone();
         boolean isBindPhone = StringUtils.isNotBlank(phone);
         customerLoginVo.setIsBindPhone(isBindPhone);
@@ -90,7 +95,13 @@ public class CustomerInfoServiceImpl extends ServiceImpl<CustomerInfoMapper, Cus
 
             //更新用户信息
             Long customerId = updateWxPhoneForm.getCustomerId();
-            CustomerInfo customerInfo = baseMapper.selectById(customerId);
+            CustomerInfo customerInfo = baseMapper.selectOne(
+                    new LambdaQueryWrapper<CustomerInfo>().eq(BaseEntity::getId,customerId)
+                            .select(BaseEntity::getId)
+            );
+            if(Objects.isNull(customerInfo)) {
+                throw new GuiguException(ResultCodeEnum.DATA_ERROR);
+            }
             customerInfo.setPhone(phoneNumber);
             baseMapper.updateById(customerInfo);
             return true;

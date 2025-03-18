@@ -68,6 +68,9 @@ public class CustomerServiceImpl implements CustomerService {
     @Override
     public Boolean updateWxPhoneNumber(UpdateWxPhoneForm updateWxPhoneForm) {
         Result<Boolean> result = customerInfoFeignClient.updateWxPhoneNumber(updateWxPhoneForm);
+        if(!result.getCode().equals(ResultCodeEnum.SUCCESS.getCode())) {
+            throw new GuiguException(result.getCode(),result.getMessage());
+        }
         return result.getData();
     }
 }

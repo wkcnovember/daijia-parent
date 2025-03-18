@@ -40,22 +40,21 @@
         <wxpay.version>0.2.11</wxpay.version>
         <weixin.miniapp.version>4.5.5.B</weixin.miniapp.version>
         <tencentcloud.version>3.1.322</tencentcloud.version>
-        <cos_api.version>5.6.155</cos_api.version>
+        <cos_api.version>5.6.137</cos_api.version>
         <m2e.apt.activation>jdt_apt</m2e.apt.activation>
         <redisson.version>3.23.3</redisson.version>
         <commons-io.version>2.11.0</commons-io.version>
         <!-- https://seata.io/zh-cn/docs/overview/what-is-seata.html -->
         <seata.version>1.7.1</seata.version>
         <drools.version>8.41.0.Final</drools.version>
-
         <mapstruct.version>1.5.5.Final</mapstruct.version>
+        <x-file-storage-spring.version>2.2.1</x-file-storage-spring.version>
     </properties>
 
     <!--配置dependencyManagement锁定依赖的版本-->
     <dependencyManagement>
 
         <dependencies>
-
 
             <!-- MapStruct 核心库 -->
             <dependency>
@@ -68,7 +67,13 @@
                 <groupId>org.mapstruct</groupId>
                 <artifactId>mapstruct-processor</artifactId>
                 <version>${mapstruct.version}</version>
-                <scope>provided</scope>
+            </dependency>
+
+            <!-- 文件上传-->
+            <dependency>
+                <groupId>org.dromara.x-file-storage</groupId>
+                <artifactId>x-file-storage-spring</artifactId>
+                <version>${x-file-storage-spring.version}</version>
             </dependency>
 
             <dependency>

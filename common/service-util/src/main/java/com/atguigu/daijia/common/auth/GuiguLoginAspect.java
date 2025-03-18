@@ -11,7 +11,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -67,10 +66,12 @@ public class GuiguLoginAspect {
         try {
             return proceedingJoinPoint.proceed();
         } catch (Throwable e) {
-            log.error("切面报错=={}",e.getMessage());
+            log.error("认证切面报错=={}",e.getMessage());
             throw new GuiguException(ResultCodeEnum.LOGIN_AUTH);
+
+            // 防止内存泄露~
         } finally {
-            log.debug("Cleaned ThreadLocal for thread: {}", Thread.currentThread().getName());
+            log.info("Cleaned ThreadLocal for thread: {}", Thread.currentThread().getName());
             AuthContextHolder.removeUserId();
         }
 
