@@ -22,5 +22,7 @@ public interface DriverInfoConvert {
 
     @Mapping(target = "id", source = "driverId")
     DriverInfo toDriverInfo(UpdateDriverAuthInfoForm updateDriverAuthInfoForm);
+
+    @Mapping(target = "driverId", source = "id")
     DriverAuthInfoVo toDriverAuthInfoVo(DriverInfo driverInfo);
 }

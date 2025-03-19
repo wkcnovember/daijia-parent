@@ -1,6 +1,7 @@
 package com.atguigu.daijia.common.constant;
 
 
+import lombok.Getter;
 
 public class DriverConstant {
 
@@ -30,6 +31,25 @@ public class DriverConstant {
 
     // 自动接单吗
     public static final int NOT_AUTO_ORDER = 0;
+
+    @Getter
+   public enum AuthStatus {
+
+       NOT_AUTHENTICATED(0, "未认证"),
+       IN_REVIEW(1, "审核中"),
+       APPROVED(2, "认证通过"),
+       REJECTED(-1, "认证未通过");
+
+       private final int code;
+       private final String description;
+
+       AuthStatus(int code, String description) {
+           this.code = code;
+           this.description = description;
+       }
+
+
+   }
 
 
 
