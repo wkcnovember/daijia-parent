@@ -30,7 +30,6 @@ public class OcrServiceImpl implements OcrService {
     public DriverLicenseOcrVo driverLicenseOcr(MultipartFile file) {
         Result<DriverLicenseOcrVo> driverLicenseOcrVoResult = ocrFeignClient.driverLicenseOcr(file);
         driverLicenseOcrVoResult.throwOnFailure();
-        DriverLicenseOcrVo driverLicenseOcrVo = driverLicenseOcrVoResult.getData();
-        return driverLicenseOcrVo;
+        return driverLicenseOcrVoResult.getData();
     }
 }

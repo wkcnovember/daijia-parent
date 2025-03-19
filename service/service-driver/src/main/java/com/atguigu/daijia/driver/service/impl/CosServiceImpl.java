@@ -42,6 +42,7 @@ public class CosServiceImpl implements CosService {
         }
         // 返回vo对象
         CosUploadVo cosUploadVo = new CosUploadVo();
+
         cosUploadVo.setUrl(fileInfo.getPath() + fileInfo.getFilename());
         //  图片临时访问url，回显使用
         cosUploadVo.setShowUrl(getShowUrl(fileInfo));
@@ -58,6 +59,28 @@ public class CosServiceImpl implements CosService {
                 .setPlatform(fileInfo.getPlatform()) // 存储平台，不传使用默认的
                 .setPath(fileInfo.getPath()) // 文件路径
                 .setFilename(fileInfo.getFilename()) // 文件名，也可以换成缩略图的文件名
+                .setMethod(Constant.GeneratePresignedUrl.Method.GET) // 签名方法
+                .setExpiration(DateUtil.offsetMinute(new Date(), 15)) // 过期时间 15 分钟
+                // .putResponseHeaders(
+                //         // 设置一个响应头，将下载时的文件名改成 NewDownloadFileName.jpg，不需要可省略
+                //         // 这里也可以设置其它的想要的响应头，每个存储平台支持情况都不太相同，可以自行测试或查询相关文档
+                //         Constant.Metadata.CONTENT_DISPOSITION, "attachment;filename=NewDownloadFileName.jpg")
+                .generatePresignedUrl();
+
+
+        return downloadResult.getUrl();
+
+    }
+    @Override
+    public String getImageUrl(String path) {
+
+
+        // 生成下载或访问用的 URL
+        GeneratePresignedUrlResult downloadResult = fileStorageService
+                .generatePresignedUrl()
+                .setPlatform(fileStorageService.getProperties().getDefaultPlatform()) // 存储平台，不传使用默认的
+                .setPath(path) // 文件路径  例如  2025/03/19/test/67da3919443cb52a408af980.png
+                // .setFilename(fileInfo.getFilename()) // 文件名，也可以换成缩略图的文件名
                 .setMethod(Constant.GeneratePresignedUrl.Method.GET) // 签名方法
                 .setExpiration(DateUtil.offsetMinute(new Date(), 15)) // 过期时间 15 分钟
                 // .putResponseHeaders(

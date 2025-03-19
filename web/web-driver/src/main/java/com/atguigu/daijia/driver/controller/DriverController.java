@@ -4,16 +4,15 @@ import com.atguigu.daijia.common.auth.KjyLogin;
 import com.atguigu.daijia.common.result.Result;
 import com.atguigu.daijia.common.util.AuthContextHolder;
 import com.atguigu.daijia.driver.service.DriverService;
+import com.atguigu.daijia.model.form.driver.UpdateDriverAuthInfoForm;
+import com.atguigu.daijia.model.vo.driver.DriverAuthInfoVo;
 import com.atguigu.daijia.model.vo.driver.DriverLoginVo;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @Slf4j
 @Tag(name = "司机API接口管理")
@@ -43,7 +42,22 @@ public class DriverController {
 
     }
 
+    @Operation(summary = "更新司机认证信息")
+    @KjyLogin
+    @PostMapping("/updateDriverAuthInfo")
+    public Result<Boolean> updateDriverAuthInfo(@RequestBody UpdateDriverAuthInfoForm updateDriverAuthInfoForm) {
+        updateDriverAuthInfoForm.setDriverId(AuthContextHolder.getUserId());
+        return Result.ok(driverService.updateDriverAuthInfo(updateDriverAuthInfoForm));
+    }
 
+    @Operation(summary = "获取司机认证信息")
+    @KjyLogin
+    @GetMapping("/getDriverAuthInfo")
+    public Result<DriverAuthInfoVo> getDriverAuthInfo() {
+        //获取登录用户id，当前是司机id
+        Long driverId = AuthContextHolder.getUserId();
+        return Result.ok(driverService.getDriverAuthInfo(driverId));
+    }
 
 }
 

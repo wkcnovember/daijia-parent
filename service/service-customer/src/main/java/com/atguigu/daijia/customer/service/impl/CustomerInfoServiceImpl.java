@@ -38,7 +38,6 @@ public class CustomerInfoServiceImpl extends ServiceImpl<CustomerInfoMapper, Cus
     private CustomerInfoConvert customerInfoConvert;
 
 
-
     @Override
     public Long login(String code) {
         String openid;
@@ -75,7 +74,7 @@ public class CustomerInfoServiceImpl extends ServiceImpl<CustomerInfoMapper, Cus
     @Override
     public CustomerLoginVo getCustomerInfo(Long customerId) {
         CustomerInfo customerInfo = getById(customerId);
-        if(null == customerInfo) return null;
+        if (null == customerInfo) return null;
         CustomerLoginVo customerLoginVo = customerInfoConvert.toCustomerLoginVo(customerInfo);
         String phone = customerInfo.getPhone();
         boolean isBindPhone = StringUtils.isNotBlank(phone);
@@ -85,23 +84,27 @@ public class CustomerInfoServiceImpl extends ServiceImpl<CustomerInfoMapper, Cus
 
     @Override
     public Boolean updateWxPhoneNumber(UpdateWxPhoneForm updateWxPhoneForm) {
+
+        // 查询有没有
+        // Long customerId = updateWxPhoneForm.getCustomerId();
+        // CustomerInfo customerInfo = baseMapper.selectOne(
+        //         new LambdaQueryWrapper<CustomerInfo>().eq(BaseEntity::getId, customerId)
+        //                 .select(BaseEntity::getId)
+        // );
+        // if (Objects.isNull(customerInfo)) {
+        //     return Boolean.FALSE;
+        // }
+
         try {
             WxMaPhoneNumberInfo phoneNoInfo = wxMaService.getUserService().getPhoneNoInfo(updateWxPhoneForm.getCode());
             String phoneNumber = phoneNoInfo.getPhoneNumber();
-
-            //更新用户信息
-            Long customerId = updateWxPhoneForm.getCustomerId();
-            CustomerInfo customerInfo = baseMapper.selectOne(
-                    new LambdaQueryWrapper<CustomerInfo>().eq(BaseEntity::getId,customerId)
-                            .select(BaseEntity::getId)
-            );
-            if(Objects.isNull(customerInfo)) {
-                throw new GuiguException(ResultCodeEnum.DATA_ERROR);
-            }
+            CustomerInfo customerInfo = new CustomerInfo();
+            customerInfo.setId(updateWxPhoneForm.getCustomerId());
             customerInfo.setPhone(phoneNumber);
             baseMapper.updateById(customerInfo);
-            return true;
+            return Boolean.TRUE;
         } catch (WxErrorException e) {
+            log.error("更新用户手机号码失败,原因={}", e.getMessage());
             throw new GuiguException(ResultCodeEnum.DATA_ERROR);
         }
 

@@ -9,12 +9,15 @@ import com.atguigu.daijia.driver.mapper.DriverAccountMapper;
 import com.atguigu.daijia.driver.mapper.DriverInfoMapper;
 import com.atguigu.daijia.driver.mapper.DriverLoginLogMapper;
 import com.atguigu.daijia.driver.mapper.DriverSetMapper;
+import com.atguigu.daijia.driver.service.CosService;
 import com.atguigu.daijia.driver.service.DriverInfoService;
 import com.atguigu.daijia.model.convert.driver.DriverInfoConvert;
 import com.atguigu.daijia.model.entity.driver.DriverAccount;
 import com.atguigu.daijia.model.entity.driver.DriverInfo;
 import com.atguigu.daijia.model.entity.driver.DriverLoginLog;
 import com.atguigu.daijia.model.entity.driver.DriverSet;
+import com.atguigu.daijia.model.form.driver.UpdateDriverAuthInfoForm;
+import com.atguigu.daijia.model.vo.driver.DriverAuthInfoVo;
 import com.atguigu.daijia.model.vo.driver.DriverLoginVo;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -22,11 +25,14 @@ import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import me.chanjar.weixin.common.error.WxErrorException;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Objects;
+import java.util.concurrent.*;
 
 @Slf4j
 @Service
@@ -45,6 +51,12 @@ public class DriverInfoServiceImpl extends ServiceImpl<DriverInfoMapper, DriverI
 
     @Resource
     private DriverInfoConvert driverInfoConvert;
+
+    @Resource
+    private CosService cosService;
+
+    @Resource
+    private ThreadPoolExecutor sharedThreadPool;
 
 
     /**
@@ -115,5 +127,85 @@ public class DriverInfoServiceImpl extends ServiceImpl<DriverInfoMapper, DriverI
         driverLoginVo.setIsArchiveFace(StringUtils.isNotBlank(faceModelId));
 
         return driverLoginVo;
+    }
+
+    @Override
+    public Boolean updateDriverAuthInfo(UpdateDriverAuthInfoForm updateDriverAuthInfoForm) {
+        DriverInfo driverInfo = driverInfoConvert.toDriverInfo(updateDriverAuthInfoForm);
+        return this.updateById(driverInfo);
+    }
+
+
+    // public static void main(String[] args) {
+    //     ExecutorService executorService = Executors.newFixedThreadPool(10);
+    //     CompletableFuture<ArrayList<String>> t1 = CompletableFuture.supplyAsync(() -> {
+    //         ArrayList<String> objects = new ArrayList<>();
+    //         objects.add("首要");
+    //         return objects;
+    //     });
+    //     CompletableFuture<Void> future = t1.thenAccept((x) -> {
+    //         x.add("天才");
+    //     });
+    //
+    //     try {
+    //         CompletableFuture.allOf(t1,future).get();
+    //     } catch (InterruptedException e) {
+    //         throw new RuntimeException(e);
+    //     } catch (ExecutionException e) {
+    //         throw new RuntimeException(e);
+    //     }
+    //     System.out.println(t1.join());
+    // }
+
+    @Override
+    public DriverAuthInfoVo getDriverAuthInfo(Long driverId) {
+
+
+        CompletableFuture<DriverAuthInfoVo> infoFuture = CompletableFuture.supplyAsync(() -> {
+            DriverInfo driverInfo = baseMapper.selectById(driverId);
+            if (Objects.isNull(driverInfo)) throw new GuiguException(ResultCodeEnum.DATA_ERROR);
+            return driverInfoConvert.toDriverAuthInfoVo(driverInfo);
+        }, sharedThreadPool);
+
+        CompletableFuture<Void> idCardBackUrlFuture = infoFuture.thenAccept((driverAuthInfoVo) -> {
+            if (StringUtils.isNotBlank(driverAuthInfoVo.getIdcardBackUrl()))
+                driverAuthInfoVo.setIdcardBackShowUrl(cosService.getImageUrl(driverAuthInfoVo.getIdcardBackUrl()));
+        });
+        CompletableFuture<Void> idCardFrontFuture = infoFuture.thenAccept((driverAuthInfoVo) -> {
+            if (StringUtils.isNotBlank(driverAuthInfoVo.getIdcardFrontUrl()))
+                driverAuthInfoVo.setIdcardFrontShowUrl(cosService.getImageUrl(driverAuthInfoVo.getIdcardFrontUrl()));
+        });
+
+        CompletableFuture<Void> idcardHandFuture = infoFuture.thenAccept((driverAuthInfoVo) -> {
+            if (StringUtils.isNotBlank(driverAuthInfoVo.getIdcardHandUrl()))
+                driverAuthInfoVo.setIdcardHandShowUrl(cosService.getImageUrl(driverAuthInfoVo.getIdcardHandUrl()));
+        });
+
+        CompletableFuture<Void> driverLicenseFrontUrlFuture = infoFuture.thenAccept((driverAuthInfoVo) -> {
+            if (StringUtils.isNotBlank(driverAuthInfoVo.getDriverLicenseFrontUrl()))
+                driverAuthInfoVo.setDriverLicenseFrontShowUrl(cosService.getImageUrl(driverAuthInfoVo.getDriverLicenseFrontUrl()));
+        });
+
+        CompletableFuture<Void> driverLicenseBackUrlFuture = infoFuture.thenAccept((driverAuthInfoVo) -> {
+            if (StringUtils.isNotBlank(driverAuthInfoVo.getDriverLicenseBackUrl()))
+                driverAuthInfoVo.setDriverLicenseBackShowUrl(cosService.getImageUrl(driverAuthInfoVo.getDriverLicenseBackUrl()));
+
+        });
+
+        try {
+            CompletableFuture.allOf(infoFuture, idCardFrontFuture, idCardBackUrlFuture,
+                    idcardHandFuture, driverLicenseBackUrlFuture, driverLicenseFrontUrlFuture).get(10,
+                    TimeUnit.SECONDS);
+        } catch (TimeoutException e) {
+            log.error("获取司机的认证信息超时, 原因={}", e.getMessage());
+            throw new GuiguException(ResultCodeEnum.TIMEOUT_ERROR);
+        } catch (Exception e) {
+            log.error("获取司机的认证信息失败, 原因={}", e.getMessage());
+            throw new GuiguException(ResultCodeEnum.DATA_ERROR);
+        }
+
+
+        return infoFuture.join();
+
     }
 }

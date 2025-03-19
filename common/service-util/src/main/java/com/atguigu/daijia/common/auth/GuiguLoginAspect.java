@@ -59,15 +59,13 @@ public class GuiguLoginAspect {
 
         // 5 查询redis对应用户id，把用户id放到ThreadLocal里面
 
-            AuthContextHolder.setUserId(Long.parseLong(customerId));
+        AuthContextHolder.setUserId(Long.parseLong(customerId));
 
 
         // 6 执行业务方法
         try {
             return proceedingJoinPoint.proceed();
-        }
-
-        finally {
+        } finally {
             log.info("Cleaned ThreadLocal for thread: {}", Thread.currentThread().getName());
             AuthContextHolder.removeUserId();
         }
