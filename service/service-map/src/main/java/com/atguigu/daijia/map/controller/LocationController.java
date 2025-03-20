@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "位置API接口管理")
 @RestController
 @RequestMapping("/map/location")
-@SuppressWarnings({"unchecked", "rawtypes"})
 public class LocationController {
 
 

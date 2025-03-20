@@ -8,7 +8,6 @@ import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
-@SuppressWarnings({"unchecked", "rawtypes"})
 public class LocationServiceImpl implements LocationService {
 
 

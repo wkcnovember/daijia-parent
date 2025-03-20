@@ -77,9 +77,10 @@ public class OcrServiceImpl implements OcrService {
                 idCardOcrVo.setIdcardBackUrl(cosUploadVo.getUrl());
                 idCardOcrVo.setIdcardBackShowUrl(cosUploadVo.getShowUrl());
             }
+
             return idCardOcrVo;
         } catch (Exception e) {
-            log.error("身份证识别失败,原因={}", e.getMessage());
+            log.warn("身份证识别失败,原因={}", e.getMessage());
             throw new GuiguException(ResultCodeEnum.ID_CARD_AUTH_ERROR);
         }
     }
