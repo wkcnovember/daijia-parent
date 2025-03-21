@@ -100,4 +100,9 @@ public class OrderServiceImpl implements OrderService {
         // TODO 查询附近可以接单司机
         return orderId;
     }
+
+    @Override
+    public Integer getOrderStatus(Long orderId) {
+        return null;
+    }
 }

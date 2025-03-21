@@ -51,5 +51,12 @@ public class OrderController {
         return Result.ok(orderService.submitOrder(submitOrderForm));
     }
 
+    @Operation(summary = "查询订单状态")
+    @KjyLogin
+    @GetMapping("/getOrderStatus/{orderId}")
+    public Result<Integer> getOrderStatus(@PathVariable Long orderId) {
+        return Result.ok(orderService.getOrderStatus(orderId));
+    }
+
 }
 

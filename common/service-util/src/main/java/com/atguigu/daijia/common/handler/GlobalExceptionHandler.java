@@ -4,6 +4,9 @@ import com.atguigu.daijia.common.execption.GuiguException;
 import com.atguigu.daijia.common.result.Result;
 import com.atguigu.daijia.common.result.ResultCodeEnum;
 import feign.codec.DecodeException;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
+import jakarta.validation.ValidationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.BindException;
 import org.springframework.validation.BindingResult;
@@ -16,6 +19,8 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 
 /**
@@ -71,19 +76,10 @@ public class GlobalExceptionHandler {
 //        return Result.build(null, ResultCodeEnum.PERMISSION);
 //    }
 
-    @ExceptionHandler(value = BindException.class)
-    @ResponseBody
-    public Result error(BindException exception) {
-        BindingResult result = exception.getBindingResult();
-        Map<String, Object> errorMap = new HashMap<>();
-        List<FieldError> fieldErrors = result.getFieldErrors();
-        fieldErrors.forEach(error -> {
-            log.error("field: " + error.getField() + ", msg:" + error.getDefaultMessage());
-            errorMap.put(error.getField(), error.getDefaultMessage());
-        });
-        return Result.build(errorMap, ResultCodeEnum.ARGUMENT_VALID_ERROR);
-    }
 
+    /**
+     * 捕获 `@RequestBody` 参数校验异常
+     */
     @ExceptionHandler(value = MethodArgumentNotValidException.class)
     @ResponseBody
     public Result error(MethodArgumentNotValidException exception) {
@@ -96,6 +92,36 @@ public class GlobalExceptionHandler {
         });
         return Result.build(errorMap, ResultCodeEnum.ARGUMENT_VALID_ERROR);
     }
+
+
+
+    /**
+     * 捕获 `@RequestParam` 或 `@PathVariable` 参数校验异常
+     */
+    @ExceptionHandler(ConstraintViolationException.class)
+    @ResponseBody
+    public Result handleConstraintViolationException(ConstraintViolationException ex) {
+
+        return Result.build(null,ResultCodeEnum.ARGUMENT_VALID_ERROR);
+    }
+    /**
+     * 捕获表单提交参数校验异常
+     */
+    @ExceptionHandler(value = BindException.class)
+    @ResponseBody
+    public Result error(BindException exception) {
+        BindingResult result = exception.getBindingResult();
+        Map<String, Object> errorMap = new HashMap<>(result.getFieldErrors().size());
+        List<FieldError> fieldErrors = result.getFieldErrors();
+        fieldErrors.forEach(error -> {
+            log.error("field: " + error.getField() + ", msg:" + error.getDefaultMessage());
+            errorMap.put(error.getField(), error.getDefaultMessage());
+        });
+        return Result.build(errorMap, ResultCodeEnum.ARGUMENT_VALID_ERROR);
+    }
+
+
+
 
 
 }
