@@ -14,7 +14,7 @@ public class FeeRuleResponseVo {
     @Schema(description = "总金额")
     private BigDecimal totalAmount;
 
-    @Schema(description = "里程费")
+    @Schema(description = "里程费(基础里程+超出里程)")
     private BigDecimal distanceFee;
 
     @Schema(description = "等时费用")

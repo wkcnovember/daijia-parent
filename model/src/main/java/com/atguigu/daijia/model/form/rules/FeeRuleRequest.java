@@ -17,4 +17,10 @@ public class FeeRuleRequest {
     @Schema(description = "等候分钟")
     private Integer waitMinute;
 
+    public  void main(String[] args) {
+        String s =  "b";
+        double v = distance.doubleValue();
+        System.out.println( s.compareTo("aaa"));
+    }
+
 }
