@@ -28,6 +28,7 @@ public class CustomerServiceImpl implements CustomerService {
 
     @Override
     public String login(String code) {
+
         // 1.通过code远程获取用户id
         Result<Long> longResult = customerInfoFeignClient.login(code);
         // 2.状态问题

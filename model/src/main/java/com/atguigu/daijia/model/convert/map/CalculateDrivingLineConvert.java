@@ -2,6 +2,7 @@ package com.atguigu.daijia.model.convert.map;
 
 import com.atguigu.daijia.model.convert.GlobalMapperConfig;
 import com.atguigu.daijia.model.form.customer.ExpectOrderForm;
+import com.atguigu.daijia.model.form.customer.SubmitOrderForm;
 import com.atguigu.daijia.model.form.map.CalculateDrivingLineForm;
 import org.mapstruct.Mapper;
 
@@ -15,4 +16,6 @@ import org.mapstruct.Mapper;
 public interface CalculateDrivingLineConvert {
 
     CalculateDrivingLineForm toCalculateDrivingLine(ExpectOrderForm expectOrderForm);
+
+    CalculateDrivingLineForm toCalculateDrivingLineBySb(SubmitOrderForm submitOrderForm);
 }

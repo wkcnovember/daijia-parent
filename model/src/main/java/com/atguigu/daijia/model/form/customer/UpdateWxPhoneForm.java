@@ -8,6 +8,7 @@ import lombok.Data;
 public class UpdateWxPhoneForm {
 
 	@Schema(description = "客户Id")
+	@NotBlank
 	private Long customerId;
 
 	@NotBlank
