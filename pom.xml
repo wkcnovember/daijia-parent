@@ -25,8 +25,11 @@
     </modules>
 
     <properties>
-        <java.version>17</java.version>
-        <cloud.version>2022.0.2</cloud.version>
+
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <cloud.version>2022.0.3</cloud.version>
         <alibaba.version>2022.0.0.0-RC2</alibaba.version>
         <mybatis-plus.version>3.5.3.1</mybatis-plus.version>
         <mysql.version>8.0.30</mysql.version>
@@ -49,6 +52,8 @@
         <drools.version>8.41.0.Final</drools.version>
         <mapstruct.version>1.5.5.Final</mapstruct.version>
         <x-file-storage-spring.version>2.2.1</x-file-storage-spring.version>
+        <httpclient5.version>5.3</httpclient5.version>
+        <feign-hc5.version>13.2</feign-hc5.version>
     </properties>
 
     <!--配置dependencyManagement锁定依赖的版本-->
@@ -207,17 +212,50 @@
                 <artifactId>drools-mvel</artifactId>
                 <version>${drools.version}</version>
             </dependency>
+            <!-- 继承  httpclient5-->
+            <!-- httpclient5 -->
+            <dependency>
+                <groupId>org.apache.httpcomponents.client5</groupId>
+                <artifactId>httpclient5</artifactId>
+                <version>${httpclient5.version}</version>
+            </dependency>
+            <!-- feign-hc5-->
+            <dependency>
+                <groupId>io.github.openfeign</groupId>
+                <artifactId>feign-hc5</artifactId>
+                <version>${feign-hc5.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.httpcomponents.core5</groupId>
+                <artifactId>httpcore5</artifactId>
+                <version>${httpclient5.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
+    <!-- <build> -->
+    <!--     <finalName>${project.artifactId}</finalName> -->
+    <!--     <plugins> -->
+    <!--         <plugin> -->
+    <!--             <groupId>org.apache.maven.plugins</groupId> -->
+    <!--             <artifactId>maven-compiler-plugin</artifactId> -->
+    <!--         </plugin> -->
+    <!--     </plugins> -->
+    <!-- </build> -->
     <build>
-        <finalName>${project.artifactId}</finalName>
         <plugins>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </exclude>
+                    </excludes>
+                </configuration>
             </plugin>
         </plugins>
     </build>
-
 </project>

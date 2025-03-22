@@ -103,6 +103,6 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public Integer getOrderStatus(Long orderId) {
-        return null;
+        return orderInfoFeignClient.getOrderStatus(orderId).getData();
     }
 }

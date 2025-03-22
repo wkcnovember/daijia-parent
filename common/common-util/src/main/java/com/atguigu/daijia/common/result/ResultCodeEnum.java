@@ -37,6 +37,7 @@ public enum ResultCodeEnum {
     NODE_ERROR( 217, "该节点下有子节点，不可以删除"),
 
     COB_NEW_ORDER_FAIL( 217, "抢单失败"),
+    NEARBY_DRIVERS_NOTFOUND( 217, "没有找到老司机"),
     MAP_FAIL( 217, "地图服务调用失败"),
     PROFITSHARING_FAIL( 217, "分账调用失败"),
     NO_START_SERVICE( 217, "未开启代驾服务，不能更新位置信息"),

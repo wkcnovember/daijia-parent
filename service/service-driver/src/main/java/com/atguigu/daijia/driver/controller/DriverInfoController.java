@@ -2,40 +2,46 @@ package com.atguigu.daijia.driver.controller;
 
 import com.atguigu.daijia.common.result.Result;
 import com.atguigu.daijia.driver.service.DriverInfoService;
+import com.atguigu.daijia.model.entity.driver.DriverSet;
 import com.atguigu.daijia.model.form.driver.DriverFaceModelForm;
 import com.atguigu.daijia.model.form.driver.UpdateDriverAuthInfoForm;
 import com.atguigu.daijia.model.vo.driver.DriverAuthInfoVo;
 import com.atguigu.daijia.model.vo.driver.DriverLoginVo;
+import com.atguigu.daijia.model.vo.driver.DriverSetVo;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
+import jakarta.validation.constraints.NotNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @Slf4j
 @Tag(name = "司机API接口管理")
 @RestController
-@RequestMapping(value="/driver/info")
-@SuppressWarnings({"unchecked", "rawtypes"})
+@RequestMapping(value = "/driver/info")
+@Validated
 public class DriverInfoController {
 
 
     @Resource
     private DriverInfoService driverInfoService;
+
     @Operation(summary = "小程序授权登录")
     @GetMapping("/login/{code}")
-    public Result<Long> login(@PathVariable("code") String code) {
+    public Result<Long> login(@PathVariable("code") @NotNull String code) {
         return Result.ok(driverInfoService.login(code));
     }
 
     @Operation(summary = "获取司机登录信息")
     @GetMapping("/getDriverLoginInfo/{driverId}")
-    public Result<DriverLoginVo> getDriverInfo(@PathVariable Long driverId) {
+    public Result<DriverLoginVo> getDriverInfo(@PathVariable @NotNull Long driverId) {
         DriverLoginVo driverLoginVo = driverInfoService.getDriverInfo(driverId);
         return Result.ok(driverLoginVo);
     }
-    //更新司机认证信息
+
+    // 更新司机认证信息
     @Operation(summary = "更新司机认证信息")
     @PostMapping("/updateDriverAuthInfo")
     public Result<Boolean> updateDriverAuthInfo(@RequestBody UpdateDriverAuthInfoForm updateDriverAuthInfoForm) {
@@ -50,7 +56,7 @@ public class DriverInfoController {
         return Result.ok(driverAuthInfoVo);
     }
 
-    //创建司机人脸模型
+    // 创建司机人脸模型
     @Operation(summary = "创建司机人脸模型")
     @PostMapping("/creatDriverFaceModel")
     public Result<Boolean> creatDriverFaceModel(@RequestBody DriverFaceModelForm driverFaceModelForm) {
@@ -58,8 +64,11 @@ public class DriverInfoController {
         return Result.ok(isSuccess);
     }
 
-
-
+    @Operation(summary = "获取司机设置信息")
+    @GetMapping("/getDriverSet/{driverId}")
+    public Result<DriverSetVo> getDriverSet(@PathVariable @NotNull Long driverId) {
+        return Result.ok(driverInfoService.getDriverSet(driverId));
+    }
 
 
 }

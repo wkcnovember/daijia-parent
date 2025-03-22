@@ -17,7 +17,6 @@ import org.springframework.web.multipart.MultipartFile;
 @Tag(name = "腾讯云CI审核接口管理")
 @RestController
 @RequestMapping(value="/cos")
-@SuppressWarnings({"unchecked", "rawtypes"})
 public class CiController {
 
 

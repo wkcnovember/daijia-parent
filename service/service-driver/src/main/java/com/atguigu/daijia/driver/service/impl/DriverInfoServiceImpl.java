@@ -13,6 +13,7 @@ import com.atguigu.daijia.driver.mapper.DriverSetMapper;
 import com.atguigu.daijia.driver.service.CosService;
 import com.atguigu.daijia.driver.service.DriverInfoService;
 import com.atguigu.daijia.model.convert.driver.DriverInfoConvert;
+import com.atguigu.daijia.model.convert.driver.DriverSetConvert;
 import com.atguigu.daijia.model.entity.base.BaseEntity;
 import com.atguigu.daijia.model.entity.driver.DriverAccount;
 import com.atguigu.daijia.model.entity.driver.DriverInfo;
@@ -22,6 +23,7 @@ import com.atguigu.daijia.model.form.driver.DriverFaceModelForm;
 import com.atguigu.daijia.model.form.driver.UpdateDriverAuthInfoForm;
 import com.atguigu.daijia.model.vo.driver.DriverAuthInfoVo;
 import com.atguigu.daijia.model.vo.driver.DriverLoginVo;
+import com.atguigu.daijia.model.vo.driver.DriverSetVo;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.tencentcloudapi.common.AbstractModel;
@@ -47,7 +49,6 @@ import java.util.concurrent.*;
 
 @Slf4j
 @Service
-@SuppressWarnings({"unchecked", "rawtypes"})
 public class DriverInfoServiceImpl extends ServiceImpl<DriverInfoMapper, DriverInfo> implements DriverInfoService {
 
 
@@ -71,6 +72,9 @@ public class DriverInfoServiceImpl extends ServiceImpl<DriverInfoMapper, DriverI
 
     @Resource
     private TencentCloudProperties tencentCloudProperties;
+
+    @Resource
+    private DriverSetConvert driverSetConvert;
 
 
     /**
@@ -282,5 +286,13 @@ public class DriverInfoServiceImpl extends ServiceImpl<DriverInfoMapper, DriverI
             return false;
         }
         return true;
+    }
+
+    @Override
+    public DriverSetVo getDriverSet(Long driverId) {
+        LambdaQueryWrapper<DriverSet> eq = new LambdaQueryWrapper<DriverSet>().eq(DriverSet::getDriverId, driverId);
+        DriverSet driverSet = driverSetMapper.selectOne(eq);
+        if(null == driverSet) throw new GuiguException(ResultCodeEnum.DATA_ERROR);
+        return driverSetConvert.toDriverSetVo(driverSet);
     }
 }
