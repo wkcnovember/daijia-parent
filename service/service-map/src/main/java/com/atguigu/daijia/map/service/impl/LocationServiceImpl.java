@@ -24,10 +24,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 @Slf4j
 @Service
@@ -71,7 +68,7 @@ public class LocationServiceImpl implements LocationService {
                         searchNearByDriverForm.getLatitude().doubleValue()),
                         new Distance(DriverConstant.NEARBY_DRIVER_RADIUS, Metrics.KILOMETERS)),
                 args);
-        if (Objects.isNull(driverRes)) throw new GuiguException(ResultCodeEnum.NEARBY_DRIVERS_NOTFOUND);
+        if (Objects.isNull(driverRes)) return Collections.emptyList();
 
         List<GeoResult<RedisGeoCommands.GeoLocation<String>>> content = driverRes.getContent();
 

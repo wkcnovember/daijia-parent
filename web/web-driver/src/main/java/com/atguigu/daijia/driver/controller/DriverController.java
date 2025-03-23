@@ -19,7 +19,6 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "司机API接口管理")
 @RestController
 @RequestMapping(value="/driver")
-@SuppressWarnings({"unchecked", "rawtypes"})
 public class DriverController {
 
     @Resource

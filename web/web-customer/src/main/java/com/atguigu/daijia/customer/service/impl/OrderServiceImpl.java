@@ -45,7 +45,7 @@ public class OrderServiceImpl implements OrderService {
     public ExpectOrderVo expectOrder(ExpectOrderForm expectOrderForm) {
 
 
-
+        // 预估驾驶路线
         CalculateDrivingLineForm calculateDrivingLineForm =
                 calculateDrivingLineConvert.toCalculateDrivingLine(expectOrderForm);
         Result<DrivingLineVo> drivingLineVoResult = mapFeignClient.calculateDrivingLine(calculateDrivingLineForm);
@@ -54,6 +54,8 @@ public class OrderServiceImpl implements OrderService {
         ExpectOrderVo expectOrderVo = new ExpectOrderVo();
         DrivingLineVo drivingLineVo = drivingLineVoResult.getData();
         expectOrderVo.setDrivingLineVo(drivingLineVo);
+
+        // 预估订单金额
 
         FeeRuleRequestForm feeRuleRequestForm = new FeeRuleRequestForm();
         feeRuleRequestForm.setDistance(drivingLineVo.getDistance());
@@ -103,6 +105,8 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public Integer getOrderStatus(Long orderId) {
-        return orderInfoFeignClient.getOrderStatus(orderId).getData();
+        Result<Integer> orderStatus = orderInfoFeignClient.getOrderStatus(orderId);
+        orderStatus.throwOnFailure();
+        return orderStatus.getData();
     }
 }

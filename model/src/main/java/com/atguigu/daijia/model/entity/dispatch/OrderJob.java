@@ -17,7 +17,6 @@ public class OrderJob extends BaseEntity {
 
 	@Schema(description = "订单id")
 	@TableField("order_id")
-	@TableId(type = IdType.AUTO)
 	private Long orderId;
 
 	@Schema(description = "任务id")

@@ -2,7 +2,9 @@ package com.atguigu.daijia.common.result;
 
 
 import com.atguigu.daijia.common.execption.GuiguException;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
+import org.springframework.format.annotation.DateTimeFormat;
 
 import java.util.Objects;
 
@@ -10,10 +12,14 @@ import java.util.Objects;
  * 全局统一返回结果类
  */
 @Data
+@JsonInclude(JsonInclude.Include.NON_NULL)
+
 public class Result<T> {
 
     // 返回码
     private Integer code;
+
+
 
     // 返回消息
     private String message;

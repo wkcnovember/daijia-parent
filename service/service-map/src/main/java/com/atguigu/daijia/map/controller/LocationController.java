@@ -4,12 +4,14 @@ import com.atguigu.daijia.common.result.Result;
 import com.atguigu.daijia.map.service.LocationService;
 import com.atguigu.daijia.model.form.map.SearchNearByDriverForm;
 import com.atguigu.daijia.model.form.map.UpdateDriverLocationForm;
+import com.atguigu.daijia.model.validate.group.ServiceGroup;
 import com.atguigu.daijia.model.vo.map.NearByDriverVo;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.groups.Default;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
@@ -31,7 +33,7 @@ public class LocationController {
     @Operation(summary = "开启接单服务：更新司机经纬度位置")
     @PostMapping("/updateDriverLocation")
     public Result<Boolean> updateDriverLocation(@RequestBody
-                                                @Validated
+                                                @Validated({ServiceGroup.class, Default.class})
                                                 UpdateDriverLocationForm updateDriverLocationForm) {
         Boolean flag = locationService.updateDriverLocation(updateDriverLocationForm);
         return Result.ok(flag);

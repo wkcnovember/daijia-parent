@@ -52,6 +52,7 @@ public class DriverServiceImpl implements DriverService {
 
     @Override
     public DriverLoginVo getDriverLoginInfo(Long driverId) {
+
         Result<DriverLoginVo> loginVoResult = driverInfoFeignClient.getDriverInfo(driverId);
         loginVoResult.throwOnFailure();
         return loginVoResult.getData();
@@ -59,6 +60,7 @@ public class DriverServiceImpl implements DriverService {
 
     @Override
     public Boolean updateDriverAuthInfo(UpdateDriverAuthInfoForm updateDriverAuthInfoForm) {
+
         Result<Boolean> result = driverInfoFeignClient.updateDriverAuthInfo(updateDriverAuthInfoForm);
         result.throwOnFailure();
         return result.getData();

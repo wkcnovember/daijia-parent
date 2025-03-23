@@ -31,6 +31,8 @@ import java.util.stream.Collectors;
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
+
+    // 兜底处理
     @ExceptionHandler(Exception.class)
     @ResponseBody
     public Result error(Exception e){
@@ -46,7 +48,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(GuiguException.class)
     @ResponseBody
     public Result error(GuiguException e){
-        e.printStackTrace();
+        log.warn("自定义异常={}",e.getMessage());
+        // e.printStackTrace();
         return Result.build(null,e.getCode(), e.getMessage());
     }
 

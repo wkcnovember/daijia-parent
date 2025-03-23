@@ -16,8 +16,5 @@ public class ServiceDispatchApplication {
         SpringApplication.run(ServiceDispatchApplication.class, args);
     }
 
-    @Bean
-    public RestTemplate restTemplate() {
-        return new RestTemplate();
-    }
+
 }
