@@ -19,7 +19,6 @@ import org.springframework.web.multipart.MultipartFile;
 @Tag(name = "腾讯云识别接口管理")
 @RestController
 @RequestMapping(value="/ocr")
-@SuppressWarnings({"unchecked", "rawtypes"})
 public class OcrController {
 
     @Resource

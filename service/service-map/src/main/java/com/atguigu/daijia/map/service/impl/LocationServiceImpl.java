@@ -42,7 +42,7 @@ public class LocationServiceImpl implements LocationService {
                 updateDriverLocationForm.getLatitude().doubleValue());
         Long add = stringRedisTemplate.opsForGeo().add(RedisConstant.DRIVER_GEO_LOCATION, point,
                 updateDriverLocationForm.getDriverId().toString());
-        if (Objects.isNull(add)) return Boolean.FALSE;
+        if (add == null) return Boolean.FALSE;
         return add > 0 ? Boolean.TRUE : Boolean.FALSE;
     }
 
@@ -68,7 +68,7 @@ public class LocationServiceImpl implements LocationService {
                         searchNearByDriverForm.getLatitude().doubleValue()),
                         new Distance(DriverConstant.NEARBY_DRIVER_RADIUS, Metrics.KILOMETERS)),
                 args);
-        if (Objects.isNull(driverRes)) return Collections.emptyList();
+        if (null == driverRes) return Collections.emptyList();
 
         List<GeoResult<RedisGeoCommands.GeoLocation<String>>> content = driverRes.getContent();
 
@@ -82,7 +82,7 @@ public class LocationServiceImpl implements LocationService {
                     Long driverId = JSON.parseObject(name, Long.class);
                     Result<DriverSetVo> driverSetVoResult = driverInfoFeignClient.getDriverSet(driverId);
                     DriverSetVo driverSetVo = driverSetVoResult.getData();
-                    if (Objects.isNull(driverSetVo)) {
+                    if (driverSetVo == null) {
                         return false;
                     }
 

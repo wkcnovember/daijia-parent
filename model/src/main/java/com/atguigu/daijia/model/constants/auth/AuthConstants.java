@@ -8,4 +8,6 @@ package com.atguigu.daijia.model.constants.auth;
  */
 public class AuthConstants {
     public static final String TOKEN_NAME = "token";
+    public static final String LOGIN_TYPE = "loginType";
+
 }

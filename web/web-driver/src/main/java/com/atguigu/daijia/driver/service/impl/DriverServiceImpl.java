@@ -7,6 +7,7 @@ import com.atguigu.daijia.common.result.ResultCodeEnum;
 import com.atguigu.daijia.common.util.AuthContextHolder;
 import com.atguigu.daijia.driver.client.DriverInfoFeignClient;
 import com.atguigu.daijia.driver.service.DriverService;
+import com.atguigu.daijia.model.constants.redis.AuthConstents;
 import com.atguigu.daijia.model.form.driver.DriverFaceModelForm;
 import com.atguigu.daijia.model.form.driver.UpdateDriverAuthInfoForm;
 import com.atguigu.daijia.model.vo.driver.DriverAuthInfoVo;
@@ -38,14 +39,14 @@ public class DriverServiceImpl implements DriverService {
         if (!ResultCodeEnum.SUCCESS.getCode().equals(longResult.getCode()))
             throw new GuiguException(ResultCodeEnum.LOGIN_ERROR);
         Long driverId = longResult.getData();
-        if (Objects.isNull(driverId)) throw new GuiguException(ResultCodeEnum.LOGIN_ERROR);
+        if (driverId == null) throw new GuiguException(ResultCodeEnum.LOGIN_ERROR);
 
         // token字符串
         String token = UUID.randomUUID().toString().replaceAll("-", "");
         // 放到redis，设置过期时间
-        stringRedisTemplate.opsForValue().set(RedisConstant.USER_LOGIN_KEY_PREFIX + token,
+        stringRedisTemplate.opsForValue().set(AuthConstents.DRIVER_LOGIN_KEY_PREFIX + token,
                 driverId.toString(),
-                RedisConstant.USER_LOGIN_KEY_TIMEOUT,
+                AuthConstents.DRIVER_LOGIN_KEY_TIMEOUT,
                 TimeUnit.SECONDS);
         return token;
     }

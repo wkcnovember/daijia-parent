@@ -46,7 +46,7 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
     public Integer getOrderStatus(Long orderId) {
         OrderInfo orderInfo =
                 baseMapper.selectOne(new LambdaQueryWrapper<OrderInfo>().eq(BaseEntity::getId, orderId).select(OrderInfo::getStatus));
-        if(Objects.isNull(orderInfo)) return OrderStatus.NULL_ORDER.getStatus();
+        if(orderInfo == null) return OrderStatus.NULL_ORDER.getStatus();
 
         return orderInfo.getStatus();
     }

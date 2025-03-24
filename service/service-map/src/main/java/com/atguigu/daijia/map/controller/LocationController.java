@@ -39,7 +39,7 @@ public class LocationController {
         return Result.ok(flag);
     }
 
-    // 司机关闭接单，删除司机位置信息
+    // 司机关闭接单，删除司机位置信息,可以是微信小程序被关闭发送一个请求~
     @Operation(summary = "关闭接单服务：删除司机经纬度位置")
     @DeleteMapping("/removeDriverLocation/{driverId}")
     public Result<Boolean> removeDriverLocation(@PathVariable @NotNull @Positive Long driverId) {

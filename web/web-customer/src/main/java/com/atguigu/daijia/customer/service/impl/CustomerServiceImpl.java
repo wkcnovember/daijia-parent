@@ -6,6 +6,7 @@ import com.atguigu.daijia.common.result.Result;
 import com.atguigu.daijia.common.result.ResultCodeEnum;
 import com.atguigu.daijia.customer.client.CustomerInfoFeignClient;
 import com.atguigu.daijia.customer.service.CustomerService;
+import com.atguigu.daijia.model.constants.redis.AuthConstents;
 import com.atguigu.daijia.model.form.customer.UpdateWxPhoneForm;
 import com.atguigu.daijia.model.vo.customer.CustomerLoginVo;
 import jakarta.annotation.Resource;
@@ -43,9 +44,9 @@ public class CustomerServiceImpl implements CustomerService {
 
         // 6 把用户id放到Redis，设置过期时间
         // key:token  value:customerId
-        stringRedisTemplate.opsForValue().set(RedisConstant.USER_LOGIN_KEY_PREFIX + token,
+        stringRedisTemplate.opsForValue().set(AuthConstents.CUSTOMER_LOGIN_KEY_PREFIX + token,
                 customerId.toString(),
-                RedisConstant.USER_LOGIN_KEY_TIMEOUT,
+                AuthConstents.CUSTOMER_LOGIN_KEY_TIMEOUT,
                 TimeUnit.SECONDS);
 
         // 7 返回token

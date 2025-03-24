@@ -98,7 +98,7 @@ public class DriverInfoServiceImpl extends ServiceImpl<DriverInfoMapper, DriverI
         // 根据openid查询是否第一次登录
         if (StringUtils.isBlank(openid)) throw new GuiguException(ResultCodeEnum.DATA_ERROR);
         DriverInfo driverInfo = getOne(new LambdaQueryWrapper<DriverInfo>().eq(DriverInfo::getWxOpenId, openid));
-        if (Objects.isNull(driverInfo)) {
+        if (null == driverInfo) {
 
             // 添加司机基本信息
             driverInfo = new DriverInfo();
@@ -133,7 +133,7 @@ public class DriverInfoServiceImpl extends ServiceImpl<DriverInfoMapper, DriverI
     public DriverLoginVo getDriverInfo(Long driverId) {
         // 根据司机id获取司机信息
         DriverInfo driverInfo = baseMapper.selectById(driverId);
-        if (Objects.isNull(driverInfo)) throw new GuiguException(ResultCodeEnum.DATA_ERROR);
+        if (null == driverInfo) throw new GuiguException(ResultCodeEnum.DATA_ERROR);
 
         // driverInfo -- DriverLoginVo
         DriverLoginVo driverLoginVo = driverInfoConvert.toDriverLoginVo(driverInfo);
@@ -181,7 +181,7 @@ public class DriverInfoServiceImpl extends ServiceImpl<DriverInfoMapper, DriverI
 
         CompletableFuture<DriverAuthInfoVo> infoFuture = CompletableFuture.supplyAsync(() -> {
             DriverInfo driverInfo = baseMapper.selectById(driverId);
-            if (Objects.isNull(driverInfo)) throw new GuiguException(ResultCodeEnum.DATA_ERROR);
+            if (null == driverInfo) throw new GuiguException(ResultCodeEnum.DATA_ERROR);
             return driverInfoConvert.toDriverAuthInfoVo(driverInfo);
         }, sharedThreadPool);
 

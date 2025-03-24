@@ -11,9 +11,8 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "司机账户API接口管理")
 @RestController
 @RequestMapping(value="/driver/account")
-@SuppressWarnings({"unchecked", "rawtypes"})
 public class DriverAccountController {
-	
+
 
 }
 

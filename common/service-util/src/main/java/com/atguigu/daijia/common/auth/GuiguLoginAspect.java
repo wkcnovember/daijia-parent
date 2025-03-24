@@ -1,10 +1,11 @@
 package com.atguigu.daijia.common.auth;
 
-import com.atguigu.daijia.common.constant.RedisConstant;
 import com.atguigu.daijia.common.execption.GuiguException;
 import com.atguigu.daijia.common.result.ResultCodeEnum;
 import com.atguigu.daijia.common.util.AuthContextHolder;
 import com.atguigu.daijia.model.constants.auth.AuthConstants;
+import com.atguigu.daijia.model.constants.auth.UserType;
+import com.atguigu.daijia.model.constants.redis.AuthConstents;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -39,6 +40,9 @@ public class GuiguLoginAspect {
         }
 
         HttpServletRequest request = sra.getRequest();
+        log.info(request.getHeader(AuthConstants.LOGIN_TYPE));
+        String loginType = request.getHeader(AuthConstants.LOGIN_TYPE);
+
 
 
         // 2 从请求头获取token
@@ -49,9 +53,21 @@ public class GuiguLoginAspect {
             throw new GuiguException(ResultCodeEnum.LOGIN_AUTH);
         }
 
+
+      String type  =  switch (loginType) {
+            case UserType.CUSTOMER_TYPE  ->
+                 AuthConstents.CUSTOMER_LOGIN_KEY_PREFIX;
+          case UserType.DRIVER_TYPE ->
+              AuthConstents.DRIVER_LOGIN_KEY_PREFIX;
+          case UserType.MANAGER_TYPE ->
+              AuthConstents.MANAGER_LOGIN_KEY_PREFIX;
+          default ->   throw new GuiguException(ResultCodeEnum.LOGIN_AUTH);
+
+        };
+
         // 4 token不为空，查询redis
         String customerId = stringRedisTemplate.opsForValue()
-                .get(RedisConstant.USER_LOGIN_KEY_PREFIX + token);
+                .get(type + token);
 
         if (!StringUtils.hasText(customerId)) {
             throw new GuiguException(ResultCodeEnum.LOGIN_AUTH);

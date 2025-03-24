@@ -65,7 +65,6 @@ public class XxlJobClient {
     public Boolean startJob(Long jobId) {
         XxlJobInfo xxlJobInfo = new XxlJobInfo();
         xxlJobInfo.setId(jobId.intValue());
-
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         HttpEntity<XxlJobInfo> request = new HttpEntity<>(xxlJobInfo, headers);
@@ -83,7 +82,6 @@ public class XxlJobClient {
     public Boolean stopJob(Long jobId) {
         XxlJobInfo xxlJobInfo = new XxlJobInfo();
         xxlJobInfo.setId(jobId.intValue());
-
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         HttpEntity<XxlJobInfo> request = new HttpEntity<>(xxlJobInfo, headers);
@@ -101,7 +99,6 @@ public class XxlJobClient {
     public Boolean removeJob(Long jobId) {
         XxlJobInfo xxlJobInfo = new XxlJobInfo();
         xxlJobInfo.setId(jobId.intValue());
-
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         HttpEntity<XxlJobInfo> request = new HttpEntity<>(xxlJobInfo, headers);
@@ -121,7 +118,7 @@ public class XxlJobClient {
         XxlJobInfo xxlJobInfo = new XxlJobInfo();
         xxlJobInfo.setJobGroup(xxlJobClientConfig.getJobGroupId());
         xxlJobInfo.setJobDesc(desc);
-        xxlJobInfo.setAuthor("qy");
+        xxlJobInfo.setAuthor("kkjjyy");
         xxlJobInfo.setScheduleType("CRON");
         xxlJobInfo.setScheduleConf(corn);
         xxlJobInfo.setGlueType("BEAN");
