@@ -111,7 +111,7 @@ public class OrderServiceImpl implements OrderService {
         Long orderId = longResult.getData();
 
 
-        //任务调度：查询附近可以接单司机
+        // 任务调度：查询附近可以接单司机
         CompletableFuture.runAsync(() -> {
             NewOrderTaskVo newOrderDispatchVo = new NewOrderTaskVo();
             newOrderDispatchVo.setOrderId(orderId);
@@ -126,7 +126,7 @@ public class OrderServiceImpl implements OrderService {
             newOrderDispatchVo.setExpectTime(drivingLineVo.getDuration());
             newOrderDispatchVo.setFavourFee(orderInfoForm.getFavourFee());
             newOrderDispatchVo.setCreateTime(new Date());
-            //远程调用
+            // 远程调用
             newOrderFeignClient.addAndStartTask(newOrderDispatchVo);
             // Long jobId = newOrderFeignClient.addAndStartTask(newOrderDispatchVo).getData();
         },sharedThreadPool);

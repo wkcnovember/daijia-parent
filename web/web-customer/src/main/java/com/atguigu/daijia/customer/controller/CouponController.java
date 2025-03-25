@@ -10,9 +10,8 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "优惠券活动接口管理")
 @RestController
 @RequestMapping(value="/coupon")
-@SuppressWarnings({"unchecked", "rawtypes"})
 public class CouponController {
-	
+
 
 }
 

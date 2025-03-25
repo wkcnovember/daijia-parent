@@ -33,9 +33,7 @@ public class CustomerServiceImpl implements CustomerService {
         // 1.通过code远程获取用户id
         Result<Long> longResult = customerInfoFeignClient.login(code);
         // 2.状态问题
-        if (!ResultCodeEnum.SUCCESS.getCode().equals(longResult.getCode())) {
-            throw new GuiguException(ResultCodeEnum.DATA_ERROR);
-        }
+        longResult.throwOnFailure();
         Long customerId = longResult.getData();
         if (null == customerId) throw new GuiguException(ResultCodeEnum.DATA_ERROR);
 

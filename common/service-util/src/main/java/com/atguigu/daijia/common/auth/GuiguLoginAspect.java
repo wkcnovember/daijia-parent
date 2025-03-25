@@ -40,8 +40,8 @@ public class GuiguLoginAspect {
         }
 
         HttpServletRequest request = sra.getRequest();
-        log.info(request.getHeader(AuthConstants.LOGIN_TYPE));
-        String loginType = request.getHeader(AuthConstants.LOGIN_TYPE);
+
+
 
 
 
@@ -52,7 +52,7 @@ public class GuiguLoginAspect {
         if (!StringUtils.hasText(token)) {
             throw new GuiguException(ResultCodeEnum.LOGIN_AUTH);
         }
-
+        String loginType = request.getHeader(AuthConstants.LOGIN_TYPE);
 
       String type  =  switch (loginType) {
             case UserType.CUSTOMER_TYPE  ->

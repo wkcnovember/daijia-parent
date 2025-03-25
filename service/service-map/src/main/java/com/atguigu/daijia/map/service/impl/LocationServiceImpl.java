@@ -76,8 +76,6 @@ public class LocationServiceImpl implements LocationService {
         // 根据司机个性化设计信息过滤超过接单范围的司机
         return content.stream()
                 .filter(item -> {
-
-
                     String name = item.getContent().getName();
                     Long driverId = JSON.parseObject(name, Long.class);
                     Result<DriverSetVo> driverSetVoResult = driverInfoFeignClient.getDriverSet(driverId);

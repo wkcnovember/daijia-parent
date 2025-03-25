@@ -6,19 +6,14 @@ import com.atguigu.daijia.common.config.tencent.TencentCloudProperties;
 import com.atguigu.daijia.common.constant.DriverConstant;
 import com.atguigu.daijia.common.execption.GuiguException;
 import com.atguigu.daijia.common.result.ResultCodeEnum;
-import com.atguigu.daijia.driver.mapper.DriverAccountMapper;
-import com.atguigu.daijia.driver.mapper.DriverInfoMapper;
-import com.atguigu.daijia.driver.mapper.DriverLoginLogMapper;
-import com.atguigu.daijia.driver.mapper.DriverSetMapper;
+import com.atguigu.daijia.driver.mapper.*;
 import com.atguigu.daijia.driver.service.CosService;
 import com.atguigu.daijia.driver.service.DriverInfoService;
+import com.atguigu.daijia.model.constants.login.LoginCannelConstants;
 import com.atguigu.daijia.model.convert.driver.DriverInfoConvert;
 import com.atguigu.daijia.model.convert.driver.DriverSetConvert;
 import com.atguigu.daijia.model.entity.base.BaseEntity;
-import com.atguigu.daijia.model.entity.driver.DriverAccount;
-import com.atguigu.daijia.model.entity.driver.DriverInfo;
-import com.atguigu.daijia.model.entity.driver.DriverLoginLog;
-import com.atguigu.daijia.model.entity.driver.DriverSet;
+import com.atguigu.daijia.model.entity.driver.*;
 import com.atguigu.daijia.model.form.driver.DriverFaceModelForm;
 import com.atguigu.daijia.model.form.driver.UpdateDriverAuthInfoForm;
 import com.atguigu.daijia.model.vo.driver.DriverAuthInfoVo;
@@ -32,18 +27,19 @@ import com.tencentcloudapi.common.exception.TencentCloudSDKException;
 import com.tencentcloudapi.common.profile.ClientProfile;
 import com.tencentcloudapi.common.profile.HttpProfile;
 import com.tencentcloudapi.iai.v20200303.IaiClient;
-import com.tencentcloudapi.iai.v20200303.models.CreatePersonRequest;
-import com.tencentcloudapi.iai.v20200303.models.CreatePersonResponse;
+import com.tencentcloudapi.iai.v20200303.models.*;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import me.chanjar.weixin.common.error.WxErrorException;
 import org.apache.commons.lang3.StringUtils;
+import org.joda.time.DateTime;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Objects;
 import java.util.concurrent.*;
 
@@ -75,6 +71,8 @@ public class DriverInfoServiceImpl extends ServiceImpl<DriverInfoMapper, DriverI
 
     @Resource
     private DriverSetConvert driverSetConvert;
+    @Resource
+    private DriverFaceRecognitionMapper driverFaceRecognitionMapper;
 
 
     /**
@@ -124,7 +122,7 @@ public class DriverInfoServiceImpl extends ServiceImpl<DriverInfoMapper, DriverI
         // 记录司机登录信息
         DriverLoginLog driverLoginLog = new DriverLoginLog();
         driverLoginLog.setDriverId(driverInfo.getId());
-        driverLoginLog.setMsg("小程序登录");
+        driverLoginLog.setMsg(LoginCannelConstants.WECHAT_MP_CHANNEL);
         driverLoginLogMapper.insert(driverLoginLog);
         return driverInfo.getId();
     }
@@ -219,7 +217,8 @@ public class DriverInfoServiceImpl extends ServiceImpl<DriverInfoMapper, DriverI
 
         try {
             CompletableFuture.allOf(infoFuture, idCardFrontFuture, idCardBackUrlFuture,
-                    idCardHandFuture, driverLicenseBackUrlFuture, driverLicenseFrontUrlFuture,driverLicenseHandShowUrlFuture).get(10,
+                    idCardHandFuture, driverLicenseBackUrlFuture, driverLicenseFrontUrlFuture,
+                    driverLicenseHandShowUrlFuture).get(10,
                     TimeUnit.SECONDS);
         } catch (TimeoutException e) {
             log.error("获取司机的认证信息超时, 原因={}", e.getMessage());
@@ -233,36 +232,27 @@ public class DriverInfoServiceImpl extends ServiceImpl<DriverInfoMapper, DriverI
         return infoFuture.join();
 
     }
+
     // 创建司机人脸模型
     @Override
     public Boolean creatDriverFaceModel(DriverFaceModelForm driverFaceModelForm) {
-        //根据司机id获取司机信息
+        // 根据司机id获取司机信息
         LambdaQueryWrapper<DriverInfo> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(BaseEntity::getId,driverFaceModelForm.getDriverId())
-                .select(BaseEntity::getId,DriverInfo::getGender,DriverInfo::getName);
+        queryWrapper.eq(BaseEntity::getId, driverFaceModelForm.getDriverId())
+                .select(BaseEntity::getId, DriverInfo::getGender, DriverInfo::getName);
         DriverInfo driverInfo =
                 baseMapper.selectOne(queryWrapper);
-        try{
+        try {
 
             // 实例化一个认证对象，入参需要传入腾讯云账户 SecretId 和 SecretKey，此处还需注意密钥对的保密
             // 代码泄露可能会导致 SecretId 和 SecretKey 泄露，并威胁账号下所有资源的安全性。以下代码示例仅供参考，建议采用更安全的方式来使用密钥，请参见：https://cloud.tencent.com/document/product/1278/85305
             // 密钥可前往官网控制台 https://console.cloud.tencent.com/cam/capi 进行获取
-            Credential cred = new Credential(tencentCloudProperties.getSecretId(),
-                    tencentCloudProperties.getSecretKey());
-            // 实例化一个http选项，可选的，没有特殊需求可以跳过
-            HttpProfile httpProfile = new HttpProfile();
-            httpProfile.setEndpoint("iai.tencentcloudapi.com");
-            // 实例化一个client选项，可选的，没有特殊需求可以跳过
-            ClientProfile clientProfile = new ClientProfile();
-            clientProfile.setHttpProfile(httpProfile);
-            // 实例化要请求产品的client对象,clientProfile是可选的
-            IaiClient client = new IaiClient(cred, tencentCloudProperties.getRegion(),
-                    clientProfile);
+            IaiClient client = getIaiClient();
             // 实例化一个请求对象,每个接口都会对应一个request对象
             CreatePersonRequest req = new CreatePersonRequest();
-            //设置相关值
+            // 设置相关值
             req.setGroupId(tencentCloudProperties.getPersonGroupId());
-            //基本信息
+            // 基本信息
             req.setPersonId(String.valueOf(driverInfo.getId()));
             req.setGender(Long.parseLong(driverInfo.getGender()));
             req.setQualityControl(4L);
@@ -270,11 +260,12 @@ public class DriverInfoServiceImpl extends ServiceImpl<DriverInfoMapper, DriverI
             req.setPersonName(driverInfo.getName());
             req.setImage(driverFaceModelForm.getImageBase64());
 
+
             // 返回的resp是一个CreatePersonResponse的实例，与请求对象对应
             CreatePersonResponse resp = client.CreatePerson(req);
 
             String faceId = resp.getFaceId();
-            if(StringUtils.isNotBlank(faceId)) {
+            if (StringUtils.isNotBlank(faceId)) {
                 driverInfo.setName(null);
                 driverInfo.setGender(null);
                 driverInfo.setAuthStatus(DriverConstant.AuthStatus.IN_REVIEW.getCode());
@@ -292,7 +283,107 @@ public class DriverInfoServiceImpl extends ServiceImpl<DriverInfoMapper, DriverI
     public DriverSetVo getDriverSet(Long driverId) {
         LambdaQueryWrapper<DriverSet> eq = new LambdaQueryWrapper<DriverSet>().eq(DriverSet::getDriverId, driverId);
         DriverSet driverSet = driverSetMapper.selectOne(eq);
-        if(null == driverSet) throw new GuiguException(ResultCodeEnum.DATA_ERROR);
+        if (null == driverSet) throw new GuiguException(ResultCodeEnum.DATA_ERROR);
         return driverSetConvert.toDriverSetVo(driverSet);
+    }
+
+    // 判断司机当日是否进行过人脸识别
+    @Override
+    public Boolean isFaceRecognition(Long driverId) {
+        // 根据司机id + 当日日期进行查询
+        LambdaQueryWrapper<DriverFaceRecognition> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(DriverFaceRecognition::getDriverId, driverId);
+        // 年-月-日 格式
+        wrapper.eq(DriverFaceRecognition::getFaceDate, new DateTime().toString("yyyy-MM-dd"));
+        // 调用mapper方法
+        Long count = driverFaceRecognitionMapper.selectCount(wrapper);
+
+        return count != 0;
+    }
+
+    // 人脸识别
+    @Override
+    public Boolean verifyDriverFace(DriverFaceModelForm driverFaceModelForm) {
+        // 1 照片比对
+        Long driverId = driverFaceModelForm.getDriverId();
+        try {
+            // 实例化一个认证对象，入参需要传入腾讯云账户 SecretId 和 SecretKey，此处还需注意密钥对的保密
+            // 代码泄露可能会导致 SecretId 和 SecretKey 泄露，并威胁账号下所有资源的安全性。以下代码示例仅供参考，建议采用更安全的方式来使用密钥，请参见：https://cloud.tencent.com/document/product/1278/85305
+            // 密钥可前往官网控制台 https://console.cloud.tencent.com/cam/capi 进行获取
+            IaiClient client = getIaiClient();
+            // 实例化一个请求对象,每个接口都会对应一个request对象
+            VerifyFaceRequest req = new VerifyFaceRequest();
+            // 设置相关参数
+            req.setImage(driverFaceModelForm.getImageBase64());
+            req.setPersonId(String.valueOf(driverFaceModelForm.getDriverId()));
+
+            // 返回的resp是一个VerifyFaceResponse的实例，与请求对象对应
+            VerifyFaceResponse resp = client.VerifyFace(req);
+            // 输出json格式的字符串回包
+            // System.out.println(AbstractModel.toJsonString(resp));
+
+            // 静态对比失败~
+            if (Boolean.FALSE.equals(resp.getIsMatch())) {
+                throw new GuiguException(ResultCodeEnum.DATA_ERROR);
+            }
+
+            // 照片比对成功
+            // 2 如果照片比对成功，静态活体检测
+            Boolean isSuccess = this.
+                    detectLiveFace(driverId, driverFaceModelForm.getImageBase64());
+            // 3 如果静态活体都 检测通过，添加数据到认证表里面
+            if (Boolean.TRUE.equals(isSuccess)) {
+                DriverFaceRecognition driverFaceRecognition = new DriverFaceRecognition();
+                driverFaceRecognition.setDriverId(driverFaceModelForm.getDriverId());
+                driverFaceRecognition.setFaceDate(new Date());
+                driverFaceRecognitionMapper.insert(driverFaceRecognition);
+                return Boolean.TRUE;
+            }
+        } catch (TencentCloudSDKException e) {
+            log.warn("用户={},人脸识别失败~,原因=>{}", driverId, e.getMessage());
+            // System.out.println(e.toString());
+            // return Boolean.FALSE;
+        }
+        return Boolean.FALSE;
+
+    }
+
+    // 人脸静态活体检测
+    private Boolean detectLiveFace(Long driverId, String imageBase64) {
+        try {
+            IaiClient client = getIaiClient();
+            // 实例化一个请求对象,每个接口都会对应一个request对象
+            DetectLiveFaceRequest req = new DetectLiveFaceRequest();
+            req.setImage(imageBase64);
+            // 返回的resp是一个DetectLiveFaceResponse的实例，与请求对象对应
+            DetectLiveFaceResponse resp = client.DetectLiveFace(req);
+            // 输出json格式的字符串回包
+            // System.out.println(DetectLiveFaceResponse.toJsonString(resp));
+            return resp.getIsLiveness();
+            // if (resp.getIsLiveness()) {
+            //     return true;
+            // }
+        } catch (TencentCloudSDKException e) {
+            log.warn("用户={},人脸活体识别失败~,原因=>{}", driverId,e.getMessage());
+        }
+        return Boolean.FALSE;
+    }
+
+    private IaiClient getIaiClient() {
+        // 实例化一个认证对象，入参需要传入腾讯云账户 SecretId 和 SecretKey，此处还需注意密钥对的保密
+        // 代码泄露可能会导致 SecretId 和 SecretKey 泄露，并威胁账号下所有资源的安全性。以下代码示例仅供参考，建议采用更安全的方式来使用密钥，请参见：https://cloud.tencent.com/document/product/1278/85305
+        // 密钥可前往官网控制台 https://console.cloud.tencent.com/cam/capi 进行获取
+        Credential cred = new Credential(tencentCloudProperties.getSecretId(),
+                tencentCloudProperties.getSecretKey());
+        // 实例化一个http选项，可选的，没有特殊需求可以跳过
+        HttpProfile httpProfile = new HttpProfile();
+        httpProfile.setEndpoint("iai.tencentcloudapi.com");
+        // 实例化一个client选项，可选的，没有特殊需求可以跳过
+        ClientProfile clientProfile = new ClientProfile();
+        clientProfile.setHttpProfile(httpProfile);
+        // 实例化要请求产品的client对象,clientProfile是可选的
+        IaiClient client = new IaiClient(cred, tencentCloudProperties.getRegion(),
+                clientProfile);
+        return client;
     }
 }

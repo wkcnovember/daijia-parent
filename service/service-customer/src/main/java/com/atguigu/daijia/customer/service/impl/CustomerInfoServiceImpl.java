@@ -8,6 +8,7 @@ import com.atguigu.daijia.common.result.ResultCodeEnum;
 import com.atguigu.daijia.customer.mapper.CustomerInfoMapper;
 import com.atguigu.daijia.customer.mapper.CustomerLoginLogMapper;
 import com.atguigu.daijia.customer.service.CustomerInfoService;
+import com.atguigu.daijia.model.constants.login.LoginCannelConstants;
 import com.atguigu.daijia.model.convert.customer.CustomerInfoConvert;
 import com.atguigu.daijia.model.entity.base.BaseEntity;
 import com.atguigu.daijia.model.entity.customer.CustomerInfo;
@@ -26,7 +27,6 @@ import java.util.Objects;
 
 @Slf4j
 @Service
-@SuppressWarnings({"unchecked", "rawtypes"})
 public class CustomerInfoServiceImpl extends ServiceImpl<CustomerInfoMapper, CustomerInfo> implements CustomerInfoService {
 
     @Resource
@@ -64,7 +64,7 @@ public class CustomerInfoServiceImpl extends ServiceImpl<CustomerInfoMapper, Cus
         // 4 记录登录日志信息
         CustomerLoginLog customerLoginLog = new CustomerLoginLog();
         customerLoginLog.setCustomerId(customerInfo.getId());
-        customerLoginLog.setMsg("小程序登录");
+        customerLoginLog.setMsg(LoginCannelConstants.WECHAT_MP_CHANNEL);
         customerLoginLogMapper.insert(customerLoginLog);
 
         // 5 返回用户id

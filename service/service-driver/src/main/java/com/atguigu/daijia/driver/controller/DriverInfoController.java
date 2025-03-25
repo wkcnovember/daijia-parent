@@ -5,6 +5,7 @@ import com.atguigu.daijia.driver.service.DriverInfoService;
 import com.atguigu.daijia.model.entity.driver.DriverSet;
 import com.atguigu.daijia.model.form.driver.DriverFaceModelForm;
 import com.atguigu.daijia.model.form.driver.UpdateDriverAuthInfoForm;
+import com.atguigu.daijia.model.validate.group.ServiceGroup;
 import com.atguigu.daijia.model.vo.driver.DriverAuthInfoVo;
 import com.atguigu.daijia.model.vo.driver.DriverLoginVo;
 import com.atguigu.daijia.model.vo.driver.DriverSetVo;
@@ -16,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.groups.Default;
 
 @Slf4j
 @Tag(name = "司机API接口管理")
@@ -59,7 +61,7 @@ public class DriverInfoController {
     // 创建司机人脸模型
     @Operation(summary = "创建司机人脸模型")
     @PostMapping("/creatDriverFaceModel")
-    public Result<Boolean> creatDriverFaceModel(@RequestBody DriverFaceModelForm driverFaceModelForm) {
+    public Result<Boolean> creatDriverFaceModel(@RequestBody @Validated DriverFaceModelForm driverFaceModelForm) {
         Boolean isSuccess = driverInfoService.creatDriverFaceModel(driverFaceModelForm);
         return Result.ok(isSuccess);
     }
@@ -68,6 +70,19 @@ public class DriverInfoController {
     @GetMapping("/getDriverSet/{driverId}")
     public Result<DriverSetVo> getDriverSet(@PathVariable @NotNull Long driverId) {
         return Result.ok(driverInfoService.getDriverSet(driverId));
+    }
+
+    @Operation(summary = "判断司机当日是否进行过人脸识别")
+    @GetMapping("/isFaceRecognition/{driverId}")
+    Result<Boolean> isFaceRecognition(@PathVariable("driverId") @NotNull Long driverId) {
+        return Result.ok(driverInfoService.isFaceRecognition(driverId));
+    }
+
+    @Operation(summary = "验证司机人脸")
+    @PostMapping("/verifyDriverFace")
+    public Result<Boolean> verifyDriverFace(@RequestBody @Validated({ServiceGroup.class, Default.class})
+                                                DriverFaceModelForm driverFaceModelForm) {
+        return Result.ok(driverInfoService.verifyDriverFace(driverFaceModelForm));
     }
 
 

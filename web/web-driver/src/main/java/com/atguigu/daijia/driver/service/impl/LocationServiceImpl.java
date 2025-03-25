@@ -35,14 +35,13 @@ public class LocationServiceImpl implements LocationService {
         DriverSetVo driverSetVo = result.getData();
 
         // 判断：如果司机开始接单，更新位置信息
-        //  接单的话,维护每个司机的订单队列,默认没有接到订单的话15分钟过期
         Integer serviceStatus = driverSetVo.getServiceStatus();
-        if(Objects.equals(serviceStatus, DriverConstant.ServiceStatus.ACCEPTING_ORDERS.getStatus())) {
+        if (Objects.equals(serviceStatus, DriverConstant.ServiceStatus.ACCEPTING_ORDERS.getStatus())) {
             Result<Boolean> locationRes = locationFeignClient.updateDriverLocation(updateDriverLocationForm);
             locationRes.throwOnFailure();
             return locationRes.getData();
-        }else {
-            //没有接单
+        } else {
+            // 没有接单
             throw new GuiguException(ResultCodeEnum.NO_START_SERVICE);
         }
 

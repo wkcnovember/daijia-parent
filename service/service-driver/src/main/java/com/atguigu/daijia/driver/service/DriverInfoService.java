@@ -22,4 +22,8 @@ public interface DriverInfoService extends IService<DriverInfo> {
     Boolean creatDriverFaceModel(DriverFaceModelForm driverFaceModelForm);
 
     DriverSetVo getDriverSet(Long driverId);
+
+    Boolean isFaceRecognition(Long driverId);
+
+    Boolean verifyDriverFace(DriverFaceModelForm driverFaceModelForm);
 }

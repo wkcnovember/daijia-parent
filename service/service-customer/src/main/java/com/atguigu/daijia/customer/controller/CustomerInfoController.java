@@ -7,14 +7,16 @@ import com.atguigu.daijia.model.vo.customer.CustomerLoginVo;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
+import jakarta.validation.constraints.NotNull;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @Slf4j
 @RestController
 @RequestMapping("/customer/info")
 @Tag(name = "客户接口")
-@SuppressWarnings({"unchecked", "rawtypes"})
+@Validated
 public class CustomerInfoController {
 
 	@Resource
@@ -28,14 +30,14 @@ public class CustomerInfoController {
 
 	@Operation(summary = "获取客户基本信息")
 	@GetMapping("/getCustomerInfo/{customerId}")
-	public Result<CustomerLoginVo> getCustomerInfo(@PathVariable("customerId") Long customerId) {
+	public Result<CustomerLoginVo> getCustomerInfo(@PathVariable("customerId") @NotNull Long customerId) {
 		CustomerLoginVo customerLoginVo = customerInfoService.getCustomerInfo(customerId);
 		return Result.ok(customerLoginVo);
 	}
 	//微信小程序登录接口
 	@Operation(summary = "小程序授权登录")
 	@GetMapping("/login/{code}")
-	public Result<Long> login(@PathVariable String code) {
+	public Result<Long> login(@PathVariable @NotNull String code) {
 		return Result.ok(customerInfoService.login(code));
 	}
 }
