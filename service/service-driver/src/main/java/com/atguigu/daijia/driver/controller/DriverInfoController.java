@@ -1,6 +1,7 @@
 package com.atguigu.daijia.driver.controller;
 
 import com.atguigu.daijia.common.result.Result;
+import com.atguigu.daijia.common.util.AuthContextHolder;
 import com.atguigu.daijia.driver.service.DriverInfoService;
 import com.atguigu.daijia.model.entity.driver.DriverSet;
 import com.atguigu.daijia.model.form.driver.DriverFaceModelForm;
@@ -13,7 +14,9 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import lombok.extern.slf4j.Slf4j;
+import org.hibernate.validator.constraints.Range;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -84,6 +87,15 @@ public class DriverInfoController {
                                                 DriverFaceModelForm driverFaceModelForm) {
         return Result.ok(driverInfoService.verifyDriverFace(driverFaceModelForm));
     }
+
+    @Operation(summary = "更新接单状态")
+    @GetMapping("/updateServiceStatus/{driverId}/{status}")
+    public Result<Boolean> updateServiceStatus(@PathVariable("driverId") @NotNull @Positive Long driverId,
+                                               @PathVariable("status") @NotNull @Range(min = 0,max = 1) Integer status) {
+        return Result.ok(driverInfoService.updateServiceStatus(driverId, status));
+    }
+
+
 
 
 }

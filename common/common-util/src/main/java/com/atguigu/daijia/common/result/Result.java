@@ -107,4 +107,12 @@ public class Result<T> {
             throw new GuiguException(this.getCode(), this.getMessage());
         }
     }
+    public void throwOnFailureAndDataIsNull() {
+        if (checkIsError()) {
+            throw new GuiguException(this.getCode(), this.getMessage());
+        }
+        if (this.data == null) {
+            throw new GuiguException(ResultCodeEnum.DATA_ERROR);
+        }
+    }
 }

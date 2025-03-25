@@ -37,7 +37,6 @@ public interface LocationFeignClient {
 
     @PostMapping("/searchNearByDriver")
     Result<List<NearByDriverVo>> searchNearByDriver(@RequestBody
-                                                    @Validated
                                                     SearchNearByDriverForm searchNearByDriverForm);
 
 

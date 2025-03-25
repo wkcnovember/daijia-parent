@@ -35,6 +35,7 @@ public interface DriverInfoFeignClient {
 
     /**
      * 获取司机认证信息
+     *
      * @param driverId
      * @return
      */
@@ -43,6 +44,7 @@ public interface DriverInfoFeignClient {
 
     /**
      * 创建司机人脸模型
+     *
      * @param driverFaceModelForm
      * @return
      */
@@ -52,6 +54,7 @@ public interface DriverInfoFeignClient {
 
     /**
      * 获取司机个性化信息
+     *
      * @param driverId
      * @return
      */
@@ -60,19 +63,32 @@ public interface DriverInfoFeignClient {
 
     /**
      * 判断司机当日是否进行过人脸识别
+     *
      * @param driverId
      * @return
      */
     @GetMapping("/isFaceRecognition/{driverId}")
-    Result<Boolean> isFaceRecognition(@PathVariable("driverId")  Long driverId);
+    Result<Boolean> isFaceRecognition(@PathVariable("driverId") Long driverId);
 
     /**
      * "验证司机人脸"
+     *
      * @param driverFaceModelForm
      * @return
      */
     @PostMapping("/verifyDriverFace")
     Result<Boolean> verifyDriverFace(@RequestBody DriverFaceModelForm driverFaceModelForm);
+
+
+    /**
+     * 更新接单状态
+     * @param driverId
+     * @param status
+     * @return
+     */
+    @GetMapping("/updateServiceStatus/{driverId}/{status}")
+    Result<Boolean> updateServiceStatus(@PathVariable("driverId") Long driverId,
+                                        @PathVariable("status")  Integer status);
 
 
 }
