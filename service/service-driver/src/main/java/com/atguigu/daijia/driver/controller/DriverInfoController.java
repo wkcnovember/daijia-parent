@@ -13,6 +13,7 @@ import com.atguigu.daijia.model.vo.driver.DriverSetVo;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +22,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.groups.Default;
+
+import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Tag(name = "司机API接口管理")
@@ -75,6 +79,12 @@ public class DriverInfoController {
         return Result.ok(driverInfoService.getDriverSet(driverId));
     }
 
+    @Operation(summary = "批量获取司机设置信息")
+    @GetMapping("/getDriverSets")
+    public Result<Map<Long, DriverSetVo>> getDriverSetMap(List<Long> driverIds) {
+        return Result.ok(driverInfoService.getDriverSetMap(driverIds));
+    }
+
     @Operation(summary = "判断司机当日是否进行过人脸识别")
     @GetMapping("/isFaceRecognition/{driverId}")
     Result<Boolean> isFaceRecognition(@PathVariable("driverId") @NotNull Long driverId) {
@@ -84,18 +94,16 @@ public class DriverInfoController {
     @Operation(summary = "验证司机人脸")
     @PostMapping("/verifyDriverFace")
     public Result<Boolean> verifyDriverFace(@RequestBody @Validated({ServiceGroup.class, Default.class})
-                                                DriverFaceModelForm driverFaceModelForm) {
+                                            DriverFaceModelForm driverFaceModelForm) {
         return Result.ok(driverInfoService.verifyDriverFace(driverFaceModelForm));
     }
 
     @Operation(summary = "更新接单状态")
     @GetMapping("/updateServiceStatus/{driverId}/{status}")
     public Result<Boolean> updateServiceStatus(@PathVariable("driverId") @NotNull @Positive Long driverId,
-                                               @PathVariable("status") @NotNull @Range(min = 0,max = 1) Integer status) {
+                                               @PathVariable("status") @NotNull @Range(min = 0, max = 1) Integer status) {
         return Result.ok(driverInfoService.updateServiceStatus(driverId, status));
     }
-
-
 
 
 }

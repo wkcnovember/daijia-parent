@@ -9,6 +9,9 @@ import com.atguigu.daijia.model.vo.driver.DriverLoginVo;
 import com.atguigu.daijia.model.vo.driver.DriverSetVo;
 import com.baomidou.mybatisplus.extension.service.IService;
 
+import java.util.List;
+import java.util.Map;
+
 public interface DriverInfoService extends IService<DriverInfo> {
 
     Long login(String code);
@@ -28,4 +31,6 @@ public interface DriverInfoService extends IService<DriverInfo> {
     Boolean verifyDriverFace(DriverFaceModelForm driverFaceModelForm);
 
     Boolean updateServiceStatus(Long driverId, Integer status);
+
+    Map<Long,DriverSetVo> getDriverSetMap(List<Long> driverIds);
 }

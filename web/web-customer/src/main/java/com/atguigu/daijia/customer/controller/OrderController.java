@@ -11,6 +11,8 @@ import com.atguigu.daijia.model.vo.order.CurrentOrderInfoVo;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "订单API接口管理")
 @RestController
 @RequestMapping("/order")
+@Validated
 public class OrderController {
 
     @Resource
@@ -54,7 +57,7 @@ public class OrderController {
     @Operation(summary = "查询订单状态")
     @KjyLogin
     @GetMapping("/getOrderStatus/{orderId}")
-    public Result<Integer> getOrderStatus(@PathVariable Long orderId) {
+    public Result<Integer> getOrderStatus(@PathVariable @NotNull @Positive Long orderId) {
         return Result.ok(orderService.getOrderStatus(orderId));
     }
 

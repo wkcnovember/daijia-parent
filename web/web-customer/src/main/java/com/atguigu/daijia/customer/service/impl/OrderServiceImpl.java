@@ -59,7 +59,7 @@ public class OrderServiceImpl implements OrderService {
         CalculateDrivingLineForm calculateDrivingLineForm =
                 calculateDrivingLineConvert.toCalculateDrivingLine(expectOrderForm);
         Result<DrivingLineVo> drivingLineVoResult = mapFeignClient.calculateDrivingLine(calculateDrivingLineForm);
-        drivingLineVoResult.throwOnFailure();
+        drivingLineVoResult.throwOnFailureOrDataIsNull();
 
         ExpectOrderVo expectOrderVo = new ExpectOrderVo();
         DrivingLineVo drivingLineVo = drivingLineVoResult.getData();
@@ -72,7 +72,7 @@ public class OrderServiceImpl implements OrderService {
         feeRuleRequestForm.setStartTime(LocalTime.now());
         feeRuleRequestForm.setWaitMinute(0);
         Result<FeeRuleResponseVo> feeRuleResponseVoResult = feeRuleFeignClient.calculateOrderFee(feeRuleRequestForm);
-        feeRuleResponseVoResult.throwOnFailure();
+        feeRuleResponseVoResult.throwOnFailureOrDataIsNull();
         FeeRuleResponseVo data = feeRuleResponseVoResult.getData();
         expectOrderVo.setFeeRuleResponseVo(data);
 
@@ -107,7 +107,7 @@ public class OrderServiceImpl implements OrderService {
 
         // 4.远程调用订单添加接口~
         Result<Long> longResult = orderInfoFeignClient.saveOrderInfo(orderInfoForm);
-        longResult.throwOnFailure();
+        longResult.throwOnFailureOrDataIsNull();
         Long orderId = longResult.getData();
 
 

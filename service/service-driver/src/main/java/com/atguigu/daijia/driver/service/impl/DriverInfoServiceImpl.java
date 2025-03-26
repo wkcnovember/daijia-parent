@@ -38,10 +38,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -111,7 +110,7 @@ public class DriverInfoServiceImpl extends ServiceImpl<DriverInfoMapper, DriverI
             driverSet.setDriverId(driverInfo.getId());
             driverSet.setOrderDistance(new BigDecimal(DriverConstant.ORDER_DEFAULT_DISTANCE));// 0：无限制
             driverSet.setAcceptDistance(new BigDecimal(DriverConstant.ACCEPT_DISTANCE));// 默认接单范围：5公里
-            driverSet.setIsAutoAccept(DriverConstant.NOT_AUTO_ORDER);// 0：否 1：是
+            driverSet.setAutoAccept(DriverConstant.NOT_AUTO_ORDER);// 0：否 1：是
             driverSetMapper.insert(driverSet);
 
             // 初始化司机账户信息
@@ -356,6 +355,23 @@ public class DriverInfoServiceImpl extends ServiceImpl<DriverInfoMapper, DriverI
         driverSet.setServiceStatus(status);
         driverSetMapper.update(driverSet,wrapper);
         return Boolean.TRUE;
+    }
+
+    @Override
+    public Map<Long, DriverSetVo> getDriverSetMap(List<Long> driverIds) {
+
+        LambdaQueryWrapper<DriverSet> wrapper = new LambdaQueryWrapper<DriverSet>()
+                .select(DriverSet::getDriverId,
+                        DriverSet::getServiceStatus,
+                        DriverSet::getOrderDistance,
+                        DriverSet::getAcceptDistance,
+                        DriverSet::getAutoAccept)
+                .in(DriverSet::getDriverId, driverIds);
+        List<DriverSet> driverSets = driverSetMapper.selectList(wrapper);
+        Map<Long, DriverSetVo> map=  driverSets.stream()
+                .map(driverSet -> driverSetConvert.toDriverSetVo(driverSet))
+                .collect(Collectors.toMap(DriverSetVo::getDriverId,driverSetVo -> driverSetVo));
+        return map;
     }
 
     // 人脸静态活体检测

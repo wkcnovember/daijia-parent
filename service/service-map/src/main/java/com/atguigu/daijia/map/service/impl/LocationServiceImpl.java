@@ -21,6 +21,7 @@ import org.springframework.data.redis.core.GeoOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -72,14 +73,22 @@ public class LocationServiceImpl implements LocationService {
 
         List<GeoResult<RedisGeoCommands.GeoLocation<String>>> content = driverRes.getContent();
 
+        // 批量查询司机的个细化推荐
+        Result<Map<Long, DriverSetVo>> driverSetMap =
+                driverInfoFeignClient.getDriverSetMap(content.stream()
+                        .map(item -> JSON.parseObject(item.getContent().getName(), Long.class)).toList());
 
+        driverSetMap.throwOnFailure();
+        Map<Long, DriverSetVo> data = driverSetMap.getData();
+        if(CollectionUtils.isEmpty(data)) return Collections.emptyList();
         // 根据司机个性化设计信息过滤超过接单范围的司机
         return content.stream()
                 .filter(item -> {
                     String name = item.getContent().getName();
                     Long driverId = JSON.parseObject(name, Long.class);
-                    Result<DriverSetVo> driverSetVoResult = driverInfoFeignClient.getDriverSet(driverId);
-                    DriverSetVo driverSetVo = driverSetVoResult.getData();
+                    DriverSetVo driverSetVo = data.get(driverId);
+                    // Result<DriverSetVo> driverSetVoResult = driverInfoFeignClient.getDriverSet(driverId);
+                    // DriverSetVo driverSetVo = driverSetVoResult.getData();
                     if (driverSetVo == null) {
                         return false;
                     }

@@ -27,14 +27,6 @@ public class MapServiceImpl implements MapService {
     @Resource
     private RestTemplate restTemplate;
 
-    @Transactional
-    void t1() {
-        this.t2();
-        System.out.println("执行数据库代码~");
-    }
-    void t2(){
-        System.out.println("执行数据库代码~");
-    }
 
     @Value("${tencent.map.key}")
     private String key;
@@ -61,6 +53,9 @@ public class MapServiceImpl implements MapService {
 
         //使用RestTemplate调用 GET
         JSONObject result = restTemplate.getForObject(url, JSONObject.class, map);
+        if(result == null ) {
+            throw new GuiguException(ResultCodeEnum.MAP_FAIL);
+        }
         //处理返回结果
         //判断调用是否成功
         int status = result.getIntValue("status");

@@ -4,7 +4,6 @@ package com.atguigu.daijia.common.result;
 import com.atguigu.daijia.common.execption.GuiguException;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
-import org.springframework.format.annotation.DateTimeFormat;
 
 import java.util.Objects;
 
@@ -107,7 +106,7 @@ public class Result<T> {
             throw new GuiguException(this.getCode(), this.getMessage());
         }
     }
-    public void throwOnFailureAndDataIsNull() {
+    public void throwOnFailureOrDataIsNull() {
         if (checkIsError()) {
             throw new GuiguException(this.getCode(), this.getMessage());
         }

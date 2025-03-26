@@ -1,7 +1,6 @@
 package com.atguigu.daijia.dispatch.service.impl;
 
 import com.alibaba.fastjson2.JSON;
-import com.atguigu.daijia.common.constant.DriverConstant;
 import com.atguigu.daijia.common.constant.RedisConstant;
 import com.atguigu.daijia.common.execption.GuiguException;
 import com.atguigu.daijia.common.result.Result;
@@ -26,10 +25,8 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -105,11 +102,11 @@ public class NewOrderServiceImpl implements NewOrderService {
 
         Long orderId = newOrderTaskVo.getOrderId();
         Result<Integer> orderStatus = orderInfoFeignClient.getOrderStatus(orderId);
-        orderStatus.throwOnFailure();
+        orderStatus.throwOnFailureOrDataIsNull();
         Integer status = orderStatus.getData();
         if (!OrderStatus.WAITING_ACCEPT.getStatus().equals(status)) {
-            // 停止任务调度
-            xxlJobClient.stopJob(jobId);
+            // 停止并删除任务调度
+            xxlJobClient.removeJob(jobId);
             return;
         }
 

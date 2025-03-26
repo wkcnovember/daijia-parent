@@ -51,6 +51,17 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
         return orderInfo.getStatus();
     }
 
+    /**
+     * 用户取消订单
+     * @param driverId
+     * @param orderId
+     * @return
+     */
+    @Override
+    public Boolean cancelOrder(Long driverId, Long orderId) {
+        return null;
+    }
+
     void log(long orderId,Integer status) {
         OrderStatusLog orderStatusLog = new OrderStatusLog();
         orderStatusLog.setOrderId(orderId);

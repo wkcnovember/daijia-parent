@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
@@ -33,7 +34,7 @@ public class OrderController {
     @Operation(summary = "查询订单状态")
     @KjyLogin
     @GetMapping("/getOrderStatus/{orderId}")
-    public Result<Integer> getOrderStatus(@PathVariable @NotNull Long orderId) {
+    public Result<Integer> getOrderStatus(@PathVariable @NotNull @Positive Long orderId) {
         return Result.ok(orderService.getOrderStatus(orderId));
     }
     @Operation(summary = "查询司机新订单数据")

@@ -25,14 +25,14 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public Integer getOrderStatus(Long orderId) {
         Result<Integer> orderStatus = orderInfoFeignClient.getOrderStatus(orderId);
-        orderStatus.throwOnFailure();
+        orderStatus.throwOnFailureOrDataIsNull();
         return orderStatus.getData();
     }
 
     @Override
     public List<NewOrderDataVo> findNewOrderQueueData(Long driverId) {
         Result<List<NewOrderDataVo>> newOrderQueueData = newOrderFeignClient.findNewOrderQueueData(driverId);
-        newOrderQueueData.throwOnFailure();
+        newOrderQueueData.throwOnFailureOrDataIsNull();
         return newOrderQueueData.getData();
     }
 }

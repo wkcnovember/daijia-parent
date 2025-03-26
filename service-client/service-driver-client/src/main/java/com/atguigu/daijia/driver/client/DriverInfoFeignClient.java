@@ -14,6 +14,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
+import java.util.List;
+import java.util.Map;
+
 @FeignClient(value = "service-driver", path = "/driver/info")
 public interface DriverInfoFeignClient {
 
@@ -62,6 +65,16 @@ public interface DriverInfoFeignClient {
     Result<DriverSetVo> getDriverSet(@PathVariable("driverId") Long driverId);
 
     /**
+     * 批量获取司机个性化信息
+     *
+     * @param driverIds
+     * @return
+     */
+
+    @GetMapping("/getDriverSets")
+    Result<Map<Long, DriverSetVo>> getDriverSetMap(List<Long> driverIds);
+
+    /**
      * 判断司机当日是否进行过人脸识别
      *
      * @param driverId
@@ -82,13 +95,14 @@ public interface DriverInfoFeignClient {
 
     /**
      * 更新接单状态
+     *
      * @param driverId
      * @param status
      * @return
      */
     @GetMapping("/updateServiceStatus/{driverId}/{status}")
     Result<Boolean> updateServiceStatus(@PathVariable("driverId") Long driverId,
-                                        @PathVariable("status")  Integer status);
+                                        @PathVariable("status") Integer status);
 
 
 }

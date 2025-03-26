@@ -24,7 +24,7 @@ public class OrderInfoController {
 
     @Operation(summary = "保存订单信息")
     @PostMapping("/saveOrderInfo")
-    public Result<Long> saveOrderInfo(@RequestBody OrderInfoForm orderInfoForm) {
+    public Result<Long> saveOrderInfo(@RequestBody @Validated OrderInfoForm orderInfoForm) {
         return Result.ok(orderInfoService.saveOrderInfo(orderInfoForm));
     }
 
@@ -33,6 +33,15 @@ public class OrderInfoController {
     public Result<Integer> getOrderStatus(@PathVariable @NotNull @Positive Long orderId) {
         return Result.ok(orderInfoService.getOrderStatus(orderId));
     }
+
+    @Operation(summary = "用户取消订单")
+    // todo
+    @GetMapping("/getOrderStatus/{driverId}/{orderId}")
+    public Result<Boolean> cancelOrder(@PathVariable("driverId") @NotNull @Positive Long driverId,
+                                       @PathVariable("orderId") @NotNull @Positive Long orderId) {
+        return Result.ok(orderInfoService.cancelOrder(driverId,orderId));
+    }
+
 
 
 
