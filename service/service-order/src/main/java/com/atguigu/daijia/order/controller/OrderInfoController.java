@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "订单API接口管理")
 @RestController
-@RequestMapping(value="/order/info")
+@RequestMapping(value = "/order/info")
 @Validated
 public class OrderInfoController {
     @Resource
@@ -35,14 +35,18 @@ public class OrderInfoController {
     }
 
     @Operation(summary = "用户取消订单")
-    // todo
     @GetMapping("/getOrderStatus/{driverId}/{orderId}")
     public Result<Boolean> cancelOrder(@PathVariable("driverId") @NotNull @Positive Long driverId,
                                        @PathVariable("orderId") @NotNull @Positive Long orderId) {
-        return Result.ok(orderInfoService.cancelOrder(driverId,orderId));
+        return Result.ok(orderInfoService.cancelOrder(driverId, orderId));
     }
 
-
+    @Operation(summary = "司机抢单")
+    @GetMapping("/robNewOrder/{driverId}/{orderId}")
+    public Result<Boolean> robNewOrder(@PathVariable("driverId") @NotNull @Positive Long driverId,
+                                       @PathVariable("orderId") @NotNull @Positive Long orderId) {
+        return Result.ok(orderInfoService.robNewOrder(driverId, orderId));
+    }
 
 
 }

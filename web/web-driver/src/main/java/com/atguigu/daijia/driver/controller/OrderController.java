@@ -52,6 +52,13 @@ public class OrderController {
         currentOrderInfoVo.setIsHasCurrentOrder(false);
         return Result.ok(currentOrderInfoVo);
     }
+    @Operation(summary = "司机抢单")
+    @KjyLogin
+    @GetMapping("/robNewOrder/{orderId}")
+    public Result<Boolean> robNewOrder(@PathVariable("orderId") @NotNull @Positive Long orderId) {
+        Long driverId = AuthContextHolder.getUserId();
+        return Result.ok(orderService.robNewOrder(driverId, orderId));
+    }
 
 
 

@@ -80,8 +80,8 @@ public class DriverInfoController {
     }
 
     @Operation(summary = "批量获取司机设置信息")
-    @GetMapping("/getDriverSets")
-    public Result<Map<Long, DriverSetVo>> getDriverSetMap(List<Long> driverIds) {
+    @PostMapping("/getDriverSets")
+    public Result<Map<Long, DriverSetVo>> getDriverSetMap(@RequestBody List<Long> driverIds) {
         return Result.ok(driverInfoService.getDriverSetMap(driverIds));
     }
 

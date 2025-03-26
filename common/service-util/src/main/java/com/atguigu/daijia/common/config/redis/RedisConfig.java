@@ -3,6 +3,8 @@ package com.atguigu.daijia.common.config.redis;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.redisson.Redisson;
+import org.redisson.config.Config;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cache.interceptor.KeyGenerator;
@@ -25,6 +27,9 @@ import java.time.Duration;
 @Configuration
 @EnableCaching
 public class RedisConfig {
+
+
+
 
     // 使用默认标签做缓存
     @Bean

@@ -71,8 +71,8 @@ public interface DriverInfoFeignClient {
      * @return
      */
 
-    @GetMapping("/getDriverSets")
-    Result<Map<Long, DriverSetVo>> getDriverSetMap(List<Long> driverIds);
+    @PostMapping("/getDriverSets")
+    Result<Map<Long, DriverSetVo>> getDriverSetMap(@RequestBody List<Long> driverIds);
 
     /**
      * 判断司机当日是否进行过人脸识别

@@ -54,6 +54,7 @@
         <x-file-storage-spring.version>2.2.1</x-file-storage-spring.version>
         <httpclient5.version>5.3</httpclient5.version>
         <feign-hc5.version>13.2</feign-hc5.version>
+        <redisson.version>3.23.4</redisson.version>
     </properties>
 
     <!--配置dependencyManagement锁定依赖的版本-->
@@ -79,6 +80,12 @@
                 <groupId>org.dromara.x-file-storage</groupId>
                 <artifactId>x-file-storage-spring</artifactId>
                 <version>${x-file-storage-spring.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.redisson</groupId>
+                <artifactId>redisson-spring-boot-starter</artifactId>
+                <version>${redisson.version}</version>
             </dependency>
 
             <dependency>

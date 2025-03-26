@@ -29,5 +29,5 @@ public class DriverSetVo {
     private BigDecimal acceptDistance;
 
     @Schema(description = "是否自动接单")
-    private Integer isAutoAccept;
+    private Integer autoAccept;
 }
