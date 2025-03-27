@@ -10,7 +10,7 @@ public interface OrderInfoService extends IService<OrderInfo> {
 
     Integer getOrderStatus(Long orderId);
 
-    Boolean cancelOrder(Long driverId, Long orderId);
+    Boolean updateOrderStatus(Long orderId, Integer status);
 
     Boolean robNewOrder(Long driverId, Long orderId);
 }

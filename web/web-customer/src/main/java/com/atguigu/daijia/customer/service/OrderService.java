@@ -11,4 +11,6 @@ public interface OrderService {
     Long submitOrder(SubmitOrderForm submitOrderForm);
 
     Integer getOrderStatus(Long orderId);
+
+    Boolean customerCancelNoAcceptOrder(Long orderId);
 }

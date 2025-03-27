@@ -2,6 +2,13 @@ package com.atguigu.daijia.common.constant;
 
 public class RedisConstant {
 
+    // 司机 zet 保持 订单id 与时间戳
+    public static final String DRIVER_ORDER_ID_ZSET = "driver:zet:orders:";
+    public static final String DRIVER_ORDER_INFO_HASH = "driver:hash:orders:";
+
+
+
+
     //用户登录
     public static final String USER_LOGIN_KEY_PREFIX = "user:login:";
     public static final String DRIVER_LOGIN_KEY_PREFIX = "driver:login:";
@@ -13,7 +20,7 @@ public class RedisConstant {
     public static final String DRIVER_GEO_LOCATION = "driver:geo:location";
     //司机接单临时容器
     public static final String DRIVER_ORDER_TEMP_LIST = "driver:order:temp:list:";
-    public static final long DRIVER_ORDER_TEMP_LIST_EXPIRES_TIME = 1;
+    public static final long DRIVER_ORDER_TEMP_LIST_EXPIRES_TIME = 900;
     //司机订单去重容器
     public static final String DRIVER_ORDER_REPEAT_LIST = "driver:order:repeat:list:";
     public static final long DRIVER_ORDER_REPEAT_LIST_EXPIRES_TIME = 16;

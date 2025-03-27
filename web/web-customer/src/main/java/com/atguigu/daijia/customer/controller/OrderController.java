@@ -61,5 +61,12 @@ public class OrderController {
         return Result.ok(orderService.getOrderStatus(orderId));
     }
 
+    @Operation(summary = "乘客取消下单")
+    @KjyLogin
+    @GetMapping("/customerCancelNoAcceptOrder/{orderId}")
+    public Result<Boolean> customerCancelNoAcceptOrder(@PathVariable("orderId") @NotNull @Positive Long orderId) {
+        return Result.ok(orderService.customerCancelNoAcceptOrder(orderId));
+    }
+
 }
 

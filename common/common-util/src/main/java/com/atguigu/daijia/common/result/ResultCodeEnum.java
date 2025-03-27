@@ -38,6 +38,7 @@ public enum ResultCodeEnum {
 
     COB_NEW_ORDER_FAIL( 217, "抢单失败"),
     NOT_EXISTS_ORDER( 217, "此订单已被抢"),
+    CANCEL_ORDER( 217, "此订单已取消"),
     NEARBY_DRIVERS_NOTFOUND( 217, "没有找到老司机"),
     MAP_FAIL( 217, "地图服务调用失败"),
     PROFITSHARING_FAIL( 217, "分账调用失败"),

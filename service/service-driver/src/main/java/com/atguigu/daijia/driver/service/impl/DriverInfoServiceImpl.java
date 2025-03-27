@@ -36,6 +36,7 @@ import org.joda.time.DateTime;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -366,7 +367,9 @@ public class DriverInfoServiceImpl extends ServiceImpl<DriverInfoMapper, DriverI
 
     @Override
     public Map<Long, DriverSetVo> getDriverSetMap(List<Long> driverIds) {
-
+        if(CollectionUtils.isEmpty(driverIds)) {
+            return null;
+        }
         LambdaQueryWrapper<DriverSet> wrapper = new LambdaQueryWrapper<DriverSet>()
                 .select(DriverSet::getDriverId,
                         DriverSet::getServiceStatus,

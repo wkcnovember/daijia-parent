@@ -1,6 +1,7 @@
 package com.atguigu.daijia.order.controller;
 
 import com.atguigu.daijia.common.result.Result;
+import com.atguigu.daijia.model.enums.OrderStatus;
 import com.atguigu.daijia.model.form.order.OrderInfoForm;
 import com.atguigu.daijia.order.service.OrderInfoService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -34,11 +35,13 @@ public class OrderInfoController {
         return Result.ok(orderInfoService.getOrderStatus(orderId));
     }
 
-    @Operation(summary = "用户取消订单")
-    @GetMapping("/getOrderStatus/{driverId}/{orderId}")
-    public Result<Boolean> cancelOrder(@PathVariable("driverId") @NotNull @Positive Long driverId,
-                                       @PathVariable("orderId") @NotNull @Positive Long orderId) {
-        return Result.ok(orderInfoService.cancelOrder(driverId, orderId));
+
+
+    @Operation(summary = "修改订单状态")
+    @PutMapping("/updateOrderStatus/{orderId}/{status}")
+    public Result<Boolean> updateOrderStatus(@PathVariable("orderId") @NotNull @Positive Long orderId,
+                                       @PathVariable("status") @NotNull Integer status) {
+        return Result.ok(orderInfoService.updateOrderStatus(orderId,status));
     }
 
     @Operation(summary = "司机抢单")

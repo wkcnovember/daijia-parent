@@ -7,6 +7,7 @@ import com.atguigu.daijia.map.client.MapFeignClient;
 import com.atguigu.daijia.model.convert.map.CalculateDrivingLineConvert;
 import com.atguigu.daijia.model.convert.order.OrderInfoConvert;
 import com.atguigu.daijia.model.entity.order.OrderInfo;
+import com.atguigu.daijia.model.enums.OrderStatus;
 import com.atguigu.daijia.model.form.customer.ExpectOrderForm;
 import com.atguigu.daijia.model.form.customer.SubmitOrderForm;
 import com.atguigu.daijia.model.form.map.CalculateDrivingLineForm;
@@ -140,5 +141,13 @@ public class OrderServiceImpl implements OrderService {
         Result<Integer> orderStatus = orderInfoFeignClient.getOrderStatus(orderId);
         orderStatus.throwOnFailure();
         return orderStatus.getData();
+    }
+
+    @Override
+    public Boolean customerCancelNoAcceptOrder(Long orderId) {
+        Result<Boolean> result = orderInfoFeignClient.updateOrderStatus(orderId,
+                OrderStatus.CUSTOMER_CANCEL_ORDER.getStatus());
+        result.throwOnFailureOrDataIsNull();
+        return result.getData();
     }
 }

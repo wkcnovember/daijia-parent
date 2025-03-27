@@ -1,5 +1,6 @@
 package com.atguigu.daijia;
 
+import com.atguigu.daijia.common.anno.EnableMyThreadPoolConfig;
 import com.atguigu.daijia.common.anno.EnableRedisson;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -10,6 +11,7 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
 @EnableDiscoveryClient
 @EnableFeignClients
 @EnableRedisson
+@EnableMyThreadPoolConfig
 public class ServiceOrderApplication {
 
     public static void main(String[] args) {

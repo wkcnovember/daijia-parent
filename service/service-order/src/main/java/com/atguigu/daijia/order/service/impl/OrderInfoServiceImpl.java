@@ -1,5 +1,6 @@
 package com.atguigu.daijia.order.service.impl;
 
+import com.atguigu.daijia.common.constant.DriverConstant;
 import com.atguigu.daijia.common.constant.RedisConstant;
 import com.atguigu.daijia.common.execption.GuiguException;
 import com.atguigu.daijia.common.result.ResultCodeEnum;
@@ -15,19 +16,25 @@ import com.atguigu.daijia.order.service.OrderInfoService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collections;
 import java.util.Date;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import static com.atguigu.daijia.common.constant.RedisConstant.DRIVER_ORDER_ID_ZSET;
+
 @Service
+@Slf4j
 public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo> implements OrderInfoService {
 
 
@@ -39,6 +46,9 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
     private StringRedisTemplate stringRedisTemplate;
     @Resource
     private RedissonClient redissonClient;
+
+    @Resource
+    private DefaultRedisScript<Long> delDriverOrders;
 
     @Override
     @Transactional
@@ -68,15 +78,19 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
     }
 
     /**
-     * 用户取消订单
+     * 修改订单状态订单
      *
-     * @param driverId
      * @param orderId
+     * @param status
      * @return
      */
     @Override
-    public Boolean cancelOrder(Long driverId, Long orderId) {
-        return null;
+    public Boolean updateOrderStatus(Long orderId, Integer status) {
+        OrderInfo orderInfo = new OrderInfo();
+        orderInfo.setId(orderId);
+        orderInfo.setStatus(status);
+        boolean b = updateById(orderInfo);
+        return b;
     }
 
     @Override
@@ -95,24 +109,48 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
                 // 抢单失败
                 throw new GuiguException(ResultCodeEnum.COB_NEW_ORDER_FAIL);
             }
-            // 1.此订单是否存在?
-            String repeatKey =
-                    RedisConstant.DRIVER_ORDER_REPEAT_LIST + orderId;
-            Boolean isExists = stringRedisTemplate.opsForSet().isMember(repeatKey, driverId);
+            // 1.此订单是否存在 + 属于用户的订单吗?
+            // String repeatKey =
+            //         RedisConstant.DRIVER_ORDER_REPEAT_LIST + orderId;
+
+            String key = RedisConstant.DRIVER_ORDER_INFO_HASH + driverId;
+            Boolean isExists = stringRedisTemplate.opsForHash().hasKey(
+                    key, orderId.toString());
+            // .isMember(repeatKey, driverId.toString());
 
             if (Boolean.FALSE.equals(isExists)) {
                 // 抢单失败
                 throw new GuiguException(ResultCodeEnum.NOT_EXISTS_ORDER);
             }
 
-            // // 二次校验是否存在订单.防止重复添加数据
-            // isExists = stringRedisTemplate.opsForSet().isMember(repeatKey, driverId);
-            // if (Boolean.FALSE.equals(isExists)) {
-            //     // 抢单失败
-            //     throw new GuiguException(ResultCodeEnum.NOT_EXISTS_ORDER);
+
+            // 校验订单是否被不处于等待状态了
+            LambdaQueryWrapper<OrderInfo> wrapper =
+                    new LambdaQueryWrapper<OrderInfo>()
+                            .select(BaseEntity::getId, OrderInfo::getStatus)
+                            .eq(BaseEntity::getId, orderId)
+                            .eq(OrderInfo::getStatus, OrderStatus.WAITING_ACCEPT.getStatus());
+            OrderInfo orderInfo = baseMapper.selectOne(wrapper);
+            if (orderInfo == null) {
+                Long execute = stringRedisTemplate.execute(delDriverOrders,
+                        Collections.emptyList(),
+                        orderId.toString(),
+                        driverId.toString());
+                log.warn("此订单处于非等待状态~");
+                throw new GuiguException(ResultCodeEnum.NOT_EXISTS_ORDER);
+
+            }
+
+
+            // 订单不在接单状态 删除redis对应的order缓存
+            // if (!Objects.equals(OrderStatus.WAITING_ACCEPT.getStatus(), orderInfo.getStatus())) {
+            //     stringRedisTemplate.opsForHash().delete(key, orderId.toString());
+            //     String key2 = DRIVER_ORDER_ID_ZSET + driverId;
+            //     stringRedisTemplate.opsForZSet().remove(key2,orderId.toString());
+            //     throw new GuiguException(ResultCodeEnum.CANCEL_ORDER);
             // }
             // 修改订单信息
-            OrderInfo orderInfo = new OrderInfo();
+            orderInfo = new OrderInfo();
             orderInfo.setId(orderId);
             orderInfo.setDriverId(driverId);
             orderInfo.setAcceptTime(new Date());
@@ -123,13 +161,15 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
                 throw new GuiguException(ResultCodeEnum.NOT_EXISTS_ORDER);
             }
             // 删除订单标识位
-            stringRedisTemplate.delete(repeatKey);
+            stringRedisTemplate.opsForHash().delete(key, orderId.toString());
 
             return Boolean.TRUE;
 
-        } catch (Exception e) {
+        } catch (GuiguException e) {
             // 抢单失败
-            throw new GuiguException(ResultCodeEnum.COB_NEW_ORDER_FAIL);
+            throw new GuiguException(e.getCode(), e.getMessage());
+        } catch (Exception e) {
+            log.error("司机抢单业务出现异常情况={}", e);
         } finally {
             // 改进点，只能删除属于自己的key，不能删除别人的
             if (lock.isLocked() && lock.isHeldByCurrentThread()) {
@@ -137,6 +177,7 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
             }
         }
 
+        return Boolean.FALSE;
     }
 
     void log(long orderId, Integer status) {
