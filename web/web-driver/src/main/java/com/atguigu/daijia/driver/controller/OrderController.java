@@ -44,12 +44,12 @@ public class OrderController {
         Long driverId = AuthContextHolder.getUserId();
         return Result.ok(orderService.findNewOrderQueueData(driverId));
     }
-    @Operation(summary = "查找司机端当前订单")
+    @Operation(summary = "查找司机端当前是否接单~")
     @KjyLogin
     @GetMapping("/searchDriverCurrentOrder")
     public Result<CurrentOrderInfoVo> searchDriverCurrentOrder() {
         CurrentOrderInfoVo currentOrderInfoVo = new CurrentOrderInfoVo();
-        currentOrderInfoVo.setIsHasCurrentOrder(false);
+        currentOrderInfoVo.setIsHasCurrentOrder(Boolean.FALSE);
         return Result.ok(currentOrderInfoVo);
     }
     @Operation(summary = "司机抢单")

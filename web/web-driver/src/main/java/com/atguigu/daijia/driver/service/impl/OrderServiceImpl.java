@@ -32,7 +32,7 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public List<NewOrderDataVo> findNewOrderQueueData(Long driverId) {
         Result<List<NewOrderDataVo>> newOrderQueueData = newOrderFeignClient.findNewOrderQueueData(driverId);
-        newOrderQueueData.throwOnFailureOrDataIsNull();
+        newOrderQueueData.throwOnFailure();
         return newOrderQueueData.getData();
     }
 

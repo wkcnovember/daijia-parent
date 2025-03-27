@@ -50,11 +50,11 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
         orderInfo.setStatus(OrderStatus.WAITING_ACCEPT.getStatus());
         save(orderInfo);
         log(orderInfo.getId(), orderInfo.getStatus());
-        // 向redis添加标识
-        // 接单标识，标识不存在了说明不在等待接单状态了
         Long orderId = orderInfo.getId();
-        stringRedisTemplate.opsForValue().set(RedisConstant.ORDER_ACCEPT_MARK + orderId,
-                "", RedisConstant.ORDER_ACCEPT_MARK_EXPIRES_TIME, TimeUnit.MINUTES);
+        // 向redis添加标识
+        // 接单标识，标识不存在了说明不在等待接单状态了  无需~ 在任务调度已经占坑了
+        // stringRedisTemplate.opsForValue().set(RedisConstant.ORDER_ACCEPT_MARK + orderId,
+        //         "", RedisConstant.ORDER_ACCEPT_MARK_EXPIRES_TIME, TimeUnit.MINUTES);
         return orderId;
     }
 
@@ -81,14 +81,11 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
 
     @Override
     public Boolean robNewOrder(Long driverId, Long orderId) {
-        // 1.此订单是否存在?
-        Boolean isExists = stringRedisTemplate.hasKey(RedisConstant.ORDER_ACCEPT_MARK + orderId);
-        if (Boolean.FALSE.equals(isExists)) {
-            // 抢单失败
-            throw new GuiguException(ResultCodeEnum.NOT_EXISTS_ORDER);
-        }
-        // 2. 创建锁
-        RLock lock = redissonClient.getLock(RedisConstant.ROB_NEW_ORDER_LOCK + orderId);
+
+
+        // 0.0. 创建锁
+        final RLock lock = redissonClient.getLock(RedisConstant.ROB_NEW_ORDER_LOCK + orderId);
+
 
         try {
             // 获取锁
@@ -98,12 +95,22 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
                 // 抢单失败
                 throw new GuiguException(ResultCodeEnum.COB_NEW_ORDER_FAIL);
             }
-            // 二次校验是否存在订单否则被抢
-            isExists = stringRedisTemplate.hasKey(RedisConstant.ORDER_ACCEPT_MARK + orderId);
+            // 1.此订单是否存在?
+            String repeatKey =
+                    RedisConstant.DRIVER_ORDER_REPEAT_LIST + orderId;
+            Boolean isExists = stringRedisTemplate.opsForSet().isMember(repeatKey, driverId);
+
             if (Boolean.FALSE.equals(isExists)) {
                 // 抢单失败
                 throw new GuiguException(ResultCodeEnum.NOT_EXISTS_ORDER);
             }
+
+            // // 二次校验是否存在订单.防止重复添加数据
+            // isExists = stringRedisTemplate.opsForSet().isMember(repeatKey, driverId);
+            // if (Boolean.FALSE.equals(isExists)) {
+            //     // 抢单失败
+            //     throw new GuiguException(ResultCodeEnum.NOT_EXISTS_ORDER);
+            // }
             // 修改订单信息
             OrderInfo orderInfo = new OrderInfo();
             orderInfo.setId(orderId);
@@ -116,12 +123,12 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
                 throw new GuiguException(ResultCodeEnum.NOT_EXISTS_ORDER);
             }
             // 删除订单标识位
-            stringRedisTemplate.delete(RedisConstant.ORDER_ACCEPT_MARK + orderId);
+            stringRedisTemplate.delete(repeatKey);
 
             return Boolean.TRUE;
 
         } catch (Exception e) {
-            //抢单失败
+            // 抢单失败
             throw new GuiguException(ResultCodeEnum.COB_NEW_ORDER_FAIL);
         } finally {
             // 改进点，只能删除属于自己的key，不能删除别人的

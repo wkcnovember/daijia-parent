@@ -126,9 +126,9 @@ public class DriverServiceImpl implements DriverService {
         if (Boolean.FALSE.equals(updateRes)) {
             throw new GuiguException(ResultCodeEnum.DATA_ERROR);
         }
-        // 4 删除redis司机位置信息
+        // 4 删除redis旧的司机位置信息
         locationFeignClient.removeDriverLocation(driverId);
-        // 5 清空司机临时队列数据
+        // 5 清空司机旧的临时队列数据
         newOrderFeignClient.clearNewOrderQueueData(driverId);
         return Boolean.TRUE;
 

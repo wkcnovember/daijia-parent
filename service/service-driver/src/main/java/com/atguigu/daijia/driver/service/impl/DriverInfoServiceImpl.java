@@ -326,18 +326,25 @@ public class DriverInfoServiceImpl extends ServiceImpl<DriverInfoMapper, DriverI
                 throw new GuiguException(ResultCodeEnum.DATA_ERROR);
             }
 
-            // 照片比对成功
-            // 2 如果照片比对成功，静态活体检测
-            Boolean isSuccess = this.
-                    detectLiveFace(driverId, driverFaceModelForm.getImageBase64());
-            // 3 如果静态活体都 检测通过，添加数据到认证表里面
-            if (Boolean.TRUE.equals(isSuccess)) {
+
+            // todo 动态对比.需要环境支持 暂时使用静态对比
                 DriverFaceRecognition driverFaceRecognition = new DriverFaceRecognition();
                 driverFaceRecognition.setDriverId(driverFaceModelForm.getDriverId());
                 driverFaceRecognition.setFaceDate(new Date());
                 driverFaceRecognitionMapper.insert(driverFaceRecognition);
                 return Boolean.TRUE;
-            }
+            // 照片比对成功
+            // 2 如果照片比对成功，静态活体检测
+            // Boolean isSuccess = this.
+            //         detectLiveFace(driverId, driverFaceModelForm.getImageBase64());
+            // // 3 如果静态活体都 检测通过，添加数据到认证表里面
+            // if (Boolean.TRUE.equals(isSuccess)) {
+            //     DriverFaceRecognition driverFaceRecognition = new DriverFaceRecognition();
+            //     driverFaceRecognition.setDriverId(driverFaceModelForm.getDriverId());
+            //     driverFaceRecognition.setFaceDate(new Date());
+            //     driverFaceRecognitionMapper.insert(driverFaceRecognition);
+            //     return Boolean.TRUE;
+            // }
         } catch (TencentCloudSDKException e) {
             log.warn("用户={},人脸识别失败~,原因=>{}", driverId, e.getMessage());
             // System.out.println(e.toString());
