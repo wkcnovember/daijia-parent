@@ -5,6 +5,7 @@ import com.atguigu.daijia.model.entity.driver.DriverSet;
 import com.atguigu.daijia.model.form.driver.DriverFaceModelForm;
 import com.atguigu.daijia.model.form.driver.UpdateDriverAuthInfoForm;
 import com.atguigu.daijia.model.vo.driver.DriverAuthInfoVo;
+import com.atguigu.daijia.model.vo.driver.DriverInfoVo;
 import com.atguigu.daijia.model.vo.driver.DriverLoginVo;
 import com.atguigu.daijia.model.vo.driver.DriverSetVo;
 import com.baomidou.mybatisplus.extension.service.IService;
@@ -33,4 +34,6 @@ public interface DriverInfoService extends IService<DriverInfo> {
     Boolean updateServiceStatus(Long driverId, Integer status);
 
     Map<Long,DriverSetVo> getDriverSetMap(List<Long> driverIds);
+
+    DriverInfoVo getDriverInfoVo(Long driverId);
 }

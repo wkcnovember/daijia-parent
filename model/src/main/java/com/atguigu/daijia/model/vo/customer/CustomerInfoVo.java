@@ -7,8 +7,8 @@ import lombok.Data;
 public class CustomerInfoVo {
 
 
-	@Schema(description = "微信openId")
-	private String wxOpenId;
+	// @Schema(description = "微信openId")
+	// private String wxOpenId;
 
 	@Schema(description = "客户昵称")
 	private String nickname;

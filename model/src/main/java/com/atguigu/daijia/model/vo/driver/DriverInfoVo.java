@@ -9,8 +9,8 @@ import java.math.BigDecimal;
 @Data
 public class DriverInfoVo {
 
-	@Schema(description = "微信openId")
-	private String wxOpenId;
+	// @Schema(description = "微信openId")
+	// private String wxOpenId;
 
 	@Schema(description = "司机名称")
 	private String name;

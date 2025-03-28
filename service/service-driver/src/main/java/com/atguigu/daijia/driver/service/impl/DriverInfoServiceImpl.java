@@ -17,6 +17,7 @@ import com.atguigu.daijia.model.entity.driver.*;
 import com.atguigu.daijia.model.form.driver.DriverFaceModelForm;
 import com.atguigu.daijia.model.form.driver.UpdateDriverAuthInfoForm;
 import com.atguigu.daijia.model.vo.driver.DriverAuthInfoVo;
+import com.atguigu.daijia.model.vo.driver.DriverInfoVo;
 import com.atguigu.daijia.model.vo.driver.DriverLoginVo;
 import com.atguigu.daijia.model.vo.driver.DriverSetVo;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -329,11 +330,11 @@ public class DriverInfoServiceImpl extends ServiceImpl<DriverInfoMapper, DriverI
 
 
             // todo 动态对比.需要环境支持 暂时使用静态对比
-                DriverFaceRecognition driverFaceRecognition = new DriverFaceRecognition();
-                driverFaceRecognition.setDriverId(driverFaceModelForm.getDriverId());
-                driverFaceRecognition.setFaceDate(new Date());
-                driverFaceRecognitionMapper.insert(driverFaceRecognition);
-                return Boolean.TRUE;
+            DriverFaceRecognition driverFaceRecognition = new DriverFaceRecognition();
+            driverFaceRecognition.setDriverId(driverFaceModelForm.getDriverId());
+            driverFaceRecognition.setFaceDate(new Date());
+            driverFaceRecognitionMapper.insert(driverFaceRecognition);
+            return Boolean.TRUE;
             // 照片比对成功
             // 2 如果照片比对成功，静态活体检测
             // Boolean isSuccess = this.
@@ -358,16 +359,16 @@ public class DriverInfoServiceImpl extends ServiceImpl<DriverInfoMapper, DriverI
     @Override
     public Boolean updateServiceStatus(Long driverId, Integer status) {
         LambdaQueryWrapper<DriverSet> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(DriverSet::getDriverId,driverId);
+        wrapper.eq(DriverSet::getDriverId, driverId);
         DriverSet driverSet = new DriverSet();
         driverSet.setServiceStatus(status);
-        driverSetMapper.update(driverSet,wrapper);
+        driverSetMapper.update(driverSet, wrapper);
         return Boolean.TRUE;
     }
 
     @Override
     public Map<Long, DriverSetVo> getDriverSetMap(List<Long> driverIds) {
-        if(CollectionUtils.isEmpty(driverIds)) {
+        if (CollectionUtils.isEmpty(driverIds)) {
             return null;
         }
         LambdaQueryWrapper<DriverSet> wrapper = new LambdaQueryWrapper<DriverSet>()
@@ -378,10 +379,16 @@ public class DriverInfoServiceImpl extends ServiceImpl<DriverInfoMapper, DriverI
                         DriverSet::getAutoAccept)
                 .in(DriverSet::getDriverId, driverIds);
         List<DriverSet> driverSets = driverSetMapper.selectList(wrapper);
-        Map<Long, DriverSetVo> map=  driverSets.stream()
+        Map<Long, DriverSetVo> map = driverSets.stream()
                 .map(driverSet -> driverSetConvert.toDriverSetVo(driverSet))
-                .collect(Collectors.toMap(DriverSetVo::getDriverId,driverSetVo -> driverSetVo));
+                .collect(Collectors.toMap(DriverSetVo::getDriverId, driverSetVo -> driverSetVo));
         return map;
+    }
+
+    @Override
+    public DriverInfoVo getDriverInfoVo(Long driverId) {
+        DriverInfoVo driverInfoVo = baseMapper.getDriverInfoVo(driverId);
+        return driverInfoVo;
     }
 
     // 人脸静态活体检测
@@ -400,7 +407,7 @@ public class DriverInfoServiceImpl extends ServiceImpl<DriverInfoMapper, DriverI
             //     return true;
             // }
         } catch (TencentCloudSDKException e) {
-            log.warn("用户={},人脸活体识别失败~,原因=>{}", driverId,e.getMessage());
+            log.warn("用户={},人脸活体识别失败~,原因=>{}", driverId, e.getMessage());
         }
         return Boolean.FALSE;
     }

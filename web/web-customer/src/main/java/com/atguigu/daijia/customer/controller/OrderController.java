@@ -8,6 +8,7 @@ import com.atguigu.daijia.model.form.customer.ExpectOrderForm;
 import com.atguigu.daijia.model.form.customer.SubmitOrderForm;
 import com.atguigu.daijia.model.vo.customer.ExpectOrderVo;
 import com.atguigu.daijia.model.vo.order.CurrentOrderInfoVo;
+import com.atguigu.daijia.model.vo.order.OrderInfoVo;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
@@ -29,15 +30,12 @@ public class OrderController {
     @Resource
     private OrderService orderService;
 
-    //TODO 后续完善，目前假设乘客当前没有订单
     @Operation(summary = "查找乘客端当前订单")
     @KjyLogin
     @GetMapping("/searchCustomerCurrentOrder")
     public Result<CurrentOrderInfoVo> searchCustomerCurrentOrder() {
-
-        CurrentOrderInfoVo currentOrderInfoVo = new CurrentOrderInfoVo();
-        currentOrderInfoVo.setIsHasCurrentOrder(false);
-        return Result.ok(currentOrderInfoVo);
+        Long userId = AuthContextHolder.getUserId();
+        return Result.ok(orderService.searchCustomerCurrentOrder(userId));
     }
     @Operation(summary = "预估订单数据")
     @KjyLogin
@@ -66,6 +64,14 @@ public class OrderController {
     @GetMapping("/customerCancelNoAcceptOrder/{orderId}")
     public Result<Boolean> customerCancelNoAcceptOrder(@PathVariable("orderId") @NotNull @Positive Long orderId) {
         return Result.ok(orderService.customerCancelNoAcceptOrder(orderId));
+    }
+
+    @Operation(summary = "获取订单信息")
+    @KjyLogin
+    @GetMapping("/getOrderInfo/{orderId}")
+    public Result<OrderInfoVo> getOrderInfo(@PathVariable Long orderId) {
+        Long customerId = AuthContextHolder.getUserId();
+        return Result.ok(orderService.getOrderInfo(orderId, customerId));
     }
 
 }

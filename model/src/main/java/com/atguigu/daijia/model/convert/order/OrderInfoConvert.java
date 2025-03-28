@@ -4,6 +4,8 @@ import com.atguigu.daijia.model.convert.GlobalMapperConfig;
 import com.atguigu.daijia.model.entity.order.OrderInfo;
 import com.atguigu.daijia.model.form.customer.SubmitOrderForm;
 import com.atguigu.daijia.model.form.order.OrderInfoForm;
+import com.atguigu.daijia.model.vo.order.CurrentOrderInfoVo;
+import com.atguigu.daijia.model.vo.order.OrderInfoVo;
 import org.mapstruct.Mapper;
 
 /**
@@ -18,4 +20,7 @@ public interface OrderInfoConvert {
     OrderInfo toOrderInfo(OrderInfoForm orderInfoForm);
 
     OrderInfoForm toOrderInfoForm(SubmitOrderForm submitOrderForm);
+
+    OrderInfoVo toOrderInfoVo(OrderInfo orderInfo);
+
 }

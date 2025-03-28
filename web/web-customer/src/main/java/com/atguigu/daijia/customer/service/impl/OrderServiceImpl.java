@@ -1,8 +1,11 @@
 package com.atguigu.daijia.customer.service.impl;
 
+import com.atguigu.daijia.common.execption.GuiguException;
 import com.atguigu.daijia.common.result.Result;
+import com.atguigu.daijia.common.result.ResultCodeEnum;
 import com.atguigu.daijia.customer.service.OrderService;
 import com.atguigu.daijia.dispatch.client.NewOrderFeignClient;
+import com.atguigu.daijia.driver.client.DriverInfoFeignClient;
 import com.atguigu.daijia.map.client.MapFeignClient;
 import com.atguigu.daijia.model.convert.map.CalculateDrivingLineConvert;
 import com.atguigu.daijia.model.convert.order.OrderInfoConvert;
@@ -15,7 +18,10 @@ import com.atguigu.daijia.model.form.order.OrderInfoForm;
 import com.atguigu.daijia.model.form.rules.FeeRuleRequestForm;
 import com.atguigu.daijia.model.vo.customer.ExpectOrderVo;
 import com.atguigu.daijia.model.vo.dispatch.NewOrderTaskVo;
+import com.atguigu.daijia.model.vo.driver.DriverInfoVo;
 import com.atguigu.daijia.model.vo.map.DrivingLineVo;
+import com.atguigu.daijia.model.vo.order.CurrentOrderInfoVo;
+import com.atguigu.daijia.model.vo.order.OrderInfoVo;
 import com.atguigu.daijia.model.vo.rules.FeeRuleResponseVo;
 import com.atguigu.daijia.order.client.OrderInfoFeignClient;
 import com.atguigu.daijia.rules.client.FeeRuleFeignClient;
@@ -26,6 +32,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalTime;
 import java.util.Date;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadPoolExecutor;
 
@@ -51,6 +58,9 @@ public class OrderServiceImpl implements OrderService {
     private ThreadPoolExecutor sharedThreadPool;
     @Resource
     private NewOrderFeignClient newOrderFeignClient;
+
+    @Resource
+    private DriverInfoFeignClient driverInfoFeignClient;
 
     @Override
     public ExpectOrderVo expectOrder(ExpectOrderForm expectOrderForm) {
@@ -149,5 +159,28 @@ public class OrderServiceImpl implements OrderService {
                 OrderStatus.CUSTOMER_CANCEL_ORDER.getStatus());
         result.throwOnFailureOrDataIsNull();
         return result.getData();
+    }
+
+    @Override
+    public CurrentOrderInfoVo searchCustomerCurrentOrder(Long userId) {
+        Result<CurrentOrderInfoVo> currentOrderInfoVoResult = orderInfoFeignClient.searchCustomerCurrentOrder(userId);
+        currentOrderInfoVoResult.throwOnFailureOrDataIsNull();
+        return currentOrderInfoVoResult.getData();
+    }
+
+    @Override
+    public OrderInfoVo getOrderInfo(Long orderId, Long customerId) {
+        Result<OrderInfo> orderInfoResult = orderInfoFeignClient.getOrderInfo(orderId);
+        orderInfoResult.throwOnFailureOrDataIsNull();
+        OrderInfo orderInfo = orderInfoResult.getData();
+        if(!Objects.equals(orderInfo.getCustomerId(),customerId)){
+            throw new GuiguException(ResultCodeEnum.ILLEGAL_REQUEST);
+        }
+        OrderInfoVo orderInfoVo = orderInfoConvert.toOrderInfoVo(orderInfo);
+        orderInfoVo.setOrderId(orderId);
+        Result<DriverInfoVo> driverInfoVoResult = driverInfoFeignClient.getDriverInfoVo(orderInfo.getDriverId());
+        driverInfoVoResult.throwOnFailureOrDataIsNull();
+        orderInfoVo.setDriverInfoVo(driverInfoVoResult.getData());
+        return orderInfoVo;
     }
 }

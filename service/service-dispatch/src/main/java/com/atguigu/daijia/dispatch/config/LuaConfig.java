@@ -24,11 +24,29 @@ public class LuaConfig {
         return script;
     }
 
+    /**
+     * 删除司机订单列表中不符合的订单
+     * @return
+     */
+    @Bean(name = "delDriverOrderKeys")
+    public DefaultRedisScript<Long> delDriverOrderKeys() {
+        DefaultRedisScript<Long> script = new DefaultRedisScript<>();
+        script.setScriptSource(new ResourceScriptSource(
+                new ClassPathResource("lua/del_order_key.lua")));
+        script.setResultType(Long.class); // 返回值类型
+        return script;
+    }
+
+    /**
+     * 删除司机的订单
+     * @return
+     */
+
     @Bean(name = "delDriverOrders")
     public DefaultRedisScript<Long> delDriverOrders() {
         DefaultRedisScript<Long> script = new DefaultRedisScript<>();
         script.setScriptSource(new ResourceScriptSource(
-                new ClassPathResource("lua/del_order.lua")));
+                new ClassPathResource("lua/del_orders.lua")));
         script.setResultType(Long.class); // 返回值类型
         return script;
     }

@@ -2,6 +2,7 @@ package com.atguigu.daijia.customer.client;
 
 import com.atguigu.daijia.common.result.Result;
 import com.atguigu.daijia.model.form.customer.UpdateWxPhoneForm;
+import com.atguigu.daijia.model.vo.customer.CustomerInfoVo;
 import com.atguigu.daijia.model.vo.customer.CustomerLoginVo;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,5 +22,14 @@ public interface CustomerInfoFeignClient {
 
     @PostMapping("/updateWxPhoneNumber")
     Result<Boolean> updateWxPhoneNumber(@RequestBody UpdateWxPhoneForm updateWxPhoneForm);
+
+    /**
+     * 获取客户信息(司机显示)
+     *
+     * @param customerId
+     * @return
+     */
+    @GetMapping("/getCustomerInfoVo/{customerId}")
+    Result<CustomerInfoVo> getCustomerInfoVo(@PathVariable("customerId") Long customerId);
 
 }

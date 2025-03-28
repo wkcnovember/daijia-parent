@@ -60,6 +60,9 @@ public class NewOrderServiceImpl implements NewOrderService {
     @Resource
     private DefaultRedisScript<Long> addDriverOrders;
 
+    @Resource
+    private DefaultRedisScript<Long> delDriverOrders;
+
     // 创建并启动任务调度方法
     @Override
     public Long addAndStartTask(NewOrderTaskVo newOrderTaskVo) {
@@ -257,8 +260,10 @@ public class NewOrderServiceImpl implements NewOrderService {
 
     @Override
     public Boolean clearNewOrderQueueData(Long driverId) {
-        String key = RedisConstant.DRIVER_ORDER_TEMP_LIST + driverId;
-        Boolean delete = stringRedisTemplate.delete(key);
-        return delete;
+        // String key = RedisConstant.DRIVER_ORDER_TEMP_LIST + driverId;
+        // Boolean delete = stringRedisTemplate.delete(key);
+        Long execute = stringRedisTemplate.execute(delDriverOrders, Collections.emptyList(),
+                driverId.toString());
+        return execute != null && execute > 0;
     }
 }

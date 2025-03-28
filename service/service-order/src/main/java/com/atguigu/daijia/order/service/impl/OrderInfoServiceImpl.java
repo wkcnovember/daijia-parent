@@ -10,6 +10,7 @@ import com.atguigu.daijia.model.entity.order.OrderInfo;
 import com.atguigu.daijia.model.entity.order.OrderStatusLog;
 import com.atguigu.daijia.model.enums.OrderStatus;
 import com.atguigu.daijia.model.form.order.OrderInfoForm;
+import com.atguigu.daijia.model.vo.order.CurrentOrderInfoVo;
 import com.atguigu.daijia.order.mapper.OrderInfoMapper;
 import com.atguigu.daijia.order.mapper.OrderStatusLogMapper;
 import com.atguigu.daijia.order.service.OrderInfoService;
@@ -48,7 +49,7 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
     private RedissonClient redissonClient;
 
     @Resource
-    private DefaultRedisScript<Long> delDriverOrders;
+    private DefaultRedisScript<Long> delDriverOrderKeys;
 
     @Override
     @Transactional
@@ -122,8 +123,6 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
                 // 抢单失败
                 throw new GuiguException(ResultCodeEnum.NOT_EXISTS_ORDER);
             }
-
-
             // 校验订单是否被不处于等待状态了
             LambdaQueryWrapper<OrderInfo> wrapper =
                     new LambdaQueryWrapper<OrderInfo>()
@@ -132,10 +131,7 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
                             .eq(OrderInfo::getStatus, OrderStatus.WAITING_ACCEPT.getStatus());
             OrderInfo orderInfo = baseMapper.selectOne(wrapper);
             if (orderInfo == null) {
-                Long execute = stringRedisTemplate.execute(delDriverOrders,
-                        Collections.emptyList(),
-                        orderId.toString(),
-                        driverId.toString());
+                delOrderZsetAndHash(driverId, orderId);
                 log.warn("此订单处于非等待状态~");
                 throw new GuiguException(ResultCodeEnum.NOT_EXISTS_ORDER);
 
@@ -161,7 +157,7 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
                 throw new GuiguException(ResultCodeEnum.NOT_EXISTS_ORDER);
             }
             // 删除订单标识位
-            stringRedisTemplate.opsForHash().delete(key, orderId.toString());
+            delOrderZsetAndHash(driverId, orderId);
 
             return Boolean.TRUE;
 
@@ -179,6 +175,55 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
 
         return Boolean.FALSE;
     }
+
+    private void delOrderZsetAndHash(Long driverId, Long orderId) {
+        Long execute = stringRedisTemplate.execute(delDriverOrderKeys,
+                Collections.emptyList(),
+                orderId.toString(),
+                driverId.toString());
+    }
+
+    @Override
+    public CurrentOrderInfoVo searchCustomerCurrentOrder(Long customerId) {
+        return getCurrentOrderByCIdOrDId(true, customerId);
+    }
+
+    @Override
+    public CurrentOrderInfoVo searchDriverCurrentOrder(Long driverId) {
+        return getCurrentOrderByCIdOrDId(false, driverId);
+    }
+
+    @Override
+    public OrderInfo getOrderInfo(Long orderId) {
+        return getById(orderId);
+    }
+
+
+    private CurrentOrderInfoVo getCurrentOrderByCIdOrDId(boolean isCustomer, Long id) {
+        LambdaQueryWrapper<OrderInfo> wrapper = new LambdaQueryWrapper<>();
+        wrapper.select(BaseEntity::getId, OrderInfo::getStatus);
+
+        if (isCustomer) {
+            wrapper.eq(OrderInfo::getCustomerId, id);
+        } else {
+            wrapper.eq(OrderInfo::getDriverId, id);
+        }
+
+        wrapper.between(OrderInfo::getStatus, OrderStatus.WAITING_ACCEPT.getStatus(), OrderStatus.UNPAID.getStatus());
+        wrapper.last("limit 1");
+        OrderInfo orderInfo = getOne(wrapper);
+        CurrentOrderInfoVo currentOrderInfoVo = new CurrentOrderInfoVo();
+        if (orderInfo != null) {
+            currentOrderInfoVo.setOrderId(orderInfo.getId());
+            currentOrderInfoVo.setStatus(orderInfo.getStatus());
+            currentOrderInfoVo.setIsHasCurrentOrder(Boolean.TRUE);
+        } else {
+            currentOrderInfoVo.setIsHasCurrentOrder(Boolean.FALSE);
+        }
+
+        return currentOrderInfoVo;
+    }
+
 
     void log(long orderId, Integer status) {
         OrderStatusLog orderStatusLog = new OrderStatusLog();
