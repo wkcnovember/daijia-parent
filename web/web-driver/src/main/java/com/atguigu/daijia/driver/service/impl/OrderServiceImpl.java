@@ -7,10 +7,14 @@ import com.atguigu.daijia.customer.client.CustomerInfoFeignClient;
 import com.atguigu.daijia.dispatch.client.NewOrderFeignClient;
 import com.atguigu.daijia.driver.client.DriverInfoFeignClient;
 import com.atguigu.daijia.driver.service.OrderService;
+import com.atguigu.daijia.map.client.MapFeignClient;
 import com.atguigu.daijia.model.convert.order.OrderInfoConvert;
 import com.atguigu.daijia.model.entity.order.OrderInfo;
+import com.atguigu.daijia.model.form.map.CalculateDrivingLineForm;
+import com.atguigu.daijia.model.form.order.UpdateOrderCartForm;
 import com.atguigu.daijia.model.vo.customer.CustomerInfoVo;
 import com.atguigu.daijia.model.vo.driver.DriverInfoVo;
+import com.atguigu.daijia.model.vo.map.DrivingLineVo;
 import com.atguigu.daijia.model.vo.order.CurrentOrderInfoVo;
 import com.atguigu.daijia.model.vo.order.NewOrderDataVo;
 import com.atguigu.daijia.model.vo.order.OrderInfoVo;
@@ -36,6 +40,10 @@ public class OrderServiceImpl implements OrderService {
     private OrderInfoConvert orderInfoConvert;
     @Resource
     private CustomerInfoFeignClient customerInfoFeignClient;
+    @Resource
+    private MapFeignClient mapFeignClient;
+    @Resource
+    private DriverInfoFeignClient driverInfoFeignClient;
 
     @Override
     public Integer getOrderStatus(Long orderId) {
@@ -70,14 +78,38 @@ public class OrderServiceImpl implements OrderService {
         Result<OrderInfo> orderInfoResult = orderInfoFeignClient.getOrderInfo(orderId);
         orderInfoResult.throwOnFailureOrDataIsNull();
         OrderInfo orderInfo = orderInfoResult.getData();
-        if(!Objects.equals(orderInfo.getDriverId(),driverId)) {
+        if (!Objects.equals(orderInfo.getDriverId(), driverId)) {
             throw new GuiguException(ResultCodeEnum.ILLEGAL_REQUEST);
         }
         OrderInfoVo orderInfoVo = orderInfoConvert.toOrderInfoVo(orderInfo);
         orderInfoVo.setOrderId(orderId);
-        Result<CustomerInfoVo> customerInfoVoResult = customerInfoFeignClient.getCustomerInfoVo(orderInfo.getCustomerId());
+        Result<CustomerInfoVo> customerInfoVoResult =
+                customerInfoFeignClient.getCustomerInfoVo(orderInfo.getCustomerId());
         customerInfoVoResult.throwOnFailureOrDataIsNull();
         orderInfoVo.setCustomerInfoVo(customerInfoVoResult.getData());
         return orderInfoVo;
     }
+
+    @Override
+    public DrivingLineVo calculateDrivingLine(CalculateDrivingLineForm calculateDrivingLineForm) {
+        Result<DrivingLineVo> drivingLineVoResult = mapFeignClient.calculateDrivingLine(calculateDrivingLineForm);
+        drivingLineVoResult.throwOnFailureOrDataIsNull();
+        return drivingLineVoResult.getData();
+    }
+
+    @Override
+    public Boolean driverArriveStartLocation(Long orderId, Long driverId) {
+        Result<Boolean> result = orderInfoFeignClient.driverArriveStartLocation(orderId, driverId);
+        result.throwOnFailureOrDataIsNull();
+        return result.getData();
+    }
+
+    @Override
+    public Boolean updateOrderCart(UpdateOrderCartForm updateOrderCartForm) {
+        Result<Boolean> result = orderInfoFeignClient.updateOrderCart(updateOrderCartForm);
+        result.throwOnFailureOrDataIsNull();
+        return result.getData();
+    }
+
+
 }

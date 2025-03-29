@@ -6,6 +6,7 @@ import com.atguigu.daijia.common.result.ResultCodeEnum;
 import com.atguigu.daijia.customer.service.OrderService;
 import com.atguigu.daijia.dispatch.client.NewOrderFeignClient;
 import com.atguigu.daijia.driver.client.DriverInfoFeignClient;
+import com.atguigu.daijia.map.client.LocationFeignClient;
 import com.atguigu.daijia.map.client.MapFeignClient;
 import com.atguigu.daijia.model.convert.map.CalculateDrivingLineConvert;
 import com.atguigu.daijia.model.convert.order.OrderInfoConvert;
@@ -20,6 +21,7 @@ import com.atguigu.daijia.model.vo.customer.ExpectOrderVo;
 import com.atguigu.daijia.model.vo.dispatch.NewOrderTaskVo;
 import com.atguigu.daijia.model.vo.driver.DriverInfoVo;
 import com.atguigu.daijia.model.vo.map.DrivingLineVo;
+import com.atguigu.daijia.model.vo.map.OrderLocationVo;
 import com.atguigu.daijia.model.vo.order.CurrentOrderInfoVo;
 import com.atguigu.daijia.model.vo.order.OrderInfoVo;
 import com.atguigu.daijia.model.vo.rules.FeeRuleResponseVo;
@@ -27,6 +29,7 @@ import com.atguigu.daijia.order.client.OrderInfoFeignClient;
 import com.atguigu.daijia.rules.client.FeeRuleFeignClient;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.aspectj.weaver.ast.Var;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -61,6 +64,9 @@ public class OrderServiceImpl implements OrderService {
 
     @Resource
     private DriverInfoFeignClient driverInfoFeignClient;
+
+    @Resource
+    private LocationFeignClient locationFeignClient;
 
     @Override
     public ExpectOrderVo expectOrder(ExpectOrderForm expectOrderForm) {
@@ -140,7 +146,7 @@ public class OrderServiceImpl implements OrderService {
             // 远程调用
             newOrderFeignClient.addAndStartTask(newOrderDispatchVo);
             // Long jobId = newOrderFeignClient.addAndStartTask(newOrderDispatchVo).getData();
-        },sharedThreadPool);
+        }, sharedThreadPool);
 
 
         return orderId;
@@ -173,7 +179,8 @@ public class OrderServiceImpl implements OrderService {
         Result<OrderInfo> orderInfoResult = orderInfoFeignClient.getOrderInfo(orderId);
         orderInfoResult.throwOnFailureOrDataIsNull();
         OrderInfo orderInfo = orderInfoResult.getData();
-        if(!Objects.equals(orderInfo.getCustomerId(),customerId)){
+        // 必须是自己的订单~
+        if (!Objects.equals(orderInfo.getCustomerId(), customerId)) {
             throw new GuiguException(ResultCodeEnum.ILLEGAL_REQUEST);
         }
         OrderInfoVo orderInfoVo = orderInfoConvert.toOrderInfoVo(orderInfo);
@@ -182,5 +189,37 @@ public class OrderServiceImpl implements OrderService {
         driverInfoVoResult.throwOnFailureOrDataIsNull();
         orderInfoVo.setDriverInfoVo(driverInfoVoResult.getData());
         return orderInfoVo;
+    }
+
+    @Override
+    public DriverInfoVo getDriverInfo(Long orderId, Long customerId) {
+        Result<OrderInfo> orderInfoResult = orderInfoFeignClient.getOrderInfo(orderId);
+        orderInfoResult.throwOnFailureOrDataIsNull();
+        OrderInfo orderInfo = orderInfoResult.getData();
+        if (!Objects.equals(orderInfo.getCustomerId(), customerId)) {
+            throw new GuiguException(ResultCodeEnum.ILLEGAL_REQUEST);
+        }
+        Result<DriverInfoVo> driverInfoVo = driverInfoFeignClient.getDriverInfoVo(orderInfo.getDriverId());
+        driverInfoVo.throwOnFailureOrDataIsNull();
+        return driverInfoVo.getData();
+    }
+
+    @Override
+    public OrderLocationVo getCacheOrderLocation(Long customerId, Long orderId) {
+        Result<Boolean> orderInfoResult = orderInfoFeignClient.isCustomerCurrentOrder(customerId, orderId);
+        orderInfoResult.throwOnFailureOrDataIsNull();
+        if (Boolean.FALSE.equals(orderInfoResult.getData())) {
+            throw new GuiguException(ResultCodeEnum.ILLEGAL_REQUEST);
+        }
+        Result<OrderLocationVo> cacheOrderLocation = locationFeignClient.getCacheOrderLocation(orderId);
+        cacheOrderLocation.throwOnFailureOrDataIsNull();
+        return cacheOrderLocation.getData();
+    }
+
+    @Override
+    public DrivingLineVo calculateDrivingLine(CalculateDrivingLineForm calculateDrivingLineForm) {
+        Result<DrivingLineVo> drivingLineVoResult = mapFeignClient.calculateDrivingLine(calculateDrivingLineForm);
+        drivingLineVoResult.throwOnFailureOrDataIsNull();
+        return drivingLineVoResult.getData();
     }
 }

@@ -22,7 +22,6 @@ import com.atguigu.daijia.model.vo.driver.DriverLoginVo;
 import com.atguigu.daijia.model.vo.driver.DriverSetVo;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.tencentcloudapi.common.AbstractModel;
 import com.tencentcloudapi.common.Credential;
 import com.tencentcloudapi.common.exception.TencentCloudSDKException;
 import com.tencentcloudapi.common.profile.ClientProfile;
@@ -34,14 +33,18 @@ import lombok.extern.slf4j.Slf4j;
 import me.chanjar.weixin.common.error.WxErrorException;
 import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTime;
-import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
 import java.math.BigDecimal;
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -376,7 +379,10 @@ public class DriverInfoServiceImpl extends ServiceImpl<DriverInfoMapper, DriverI
                         DriverSet::getServiceStatus,
                         DriverSet::getOrderDistance,
                         DriverSet::getAcceptDistance,
-                        DriverSet::getAutoAccept)
+                        DriverSet::getAutoAccept
+                        )
+                // 正在的司机
+                .eq(DriverSet::getServiceStatus, DriverConstant.ServiceStatus.ACCEPTING_ORDERS.getStatus())
                 .in(DriverSet::getDriverId, driverIds);
         List<DriverSet> driverSets = driverSetMapper.selectList(wrapper);
         Map<Long, DriverSetVo> map = driverSets.stream()
@@ -387,7 +393,21 @@ public class DriverInfoServiceImpl extends ServiceImpl<DriverInfoMapper, DriverI
 
     @Override
     public DriverInfoVo getDriverInfoVo(Long driverId) {
-        DriverInfoVo driverInfoVo = baseMapper.getDriverInfoVo(driverId);
+        LambdaQueryWrapper<DriverInfo> wrapper = new LambdaQueryWrapper<>();
+        wrapper.select(DriverInfo::getName, DriverInfo::getPhone,
+                        DriverInfo::getGender, DriverInfo::getAvatarUrl,
+                        DriverInfo::getDriverLicenseIssueDate, DriverInfo::getScore,
+                        DriverInfo::getOrderCount)
+                .eq(BaseEntity::getId, driverId);
+        DriverInfo driverInfo = baseMapper.selectOne(wrapper);
+        if(driverInfo == null) {
+            throw new GuiguException(ResultCodeEnum.DATA_ERROR);
+        }
+        DriverInfoVo driverInfoVo = driverInfoConvert.toDriverInfoVo(driverInfo);
+        // 驾龄
+        Integer driverLicenseAge =
+                new DateTime().getYear() - new DateTime(driverInfo.getDriverLicenseIssueDate()).getYear() + 1;
+        driverInfoVo.setDriverLicenseAge(driverLicenseAge);
         return driverInfoVo;
     }
 

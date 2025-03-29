@@ -19,7 +19,6 @@ import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
-@SuppressWarnings({"unchecked", "rawtypes"})
 public class CustomerServiceImpl implements CustomerService {
 
     @Resource

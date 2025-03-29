@@ -28,7 +28,7 @@
 		avatar_url,
 		order_count,
 		score,
-		ROUND(DATEDIFF(CURDATE(), driver_license_issue_date) / 30) AS driving_experience_months
+		ROUND(DATEDIFF(CURDATE(), driver_license_issue_date) / 365) AS driving_experience_months
 		from driver_info
 		where id = #{id}
 		  AND is_deleted = 0

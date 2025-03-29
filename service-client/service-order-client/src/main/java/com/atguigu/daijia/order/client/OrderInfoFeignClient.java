@@ -3,8 +3,10 @@ package com.atguigu.daijia.order.client;
 import com.atguigu.daijia.common.result.Result;
 import com.atguigu.daijia.model.entity.order.OrderInfo;
 import com.atguigu.daijia.model.form.order.OrderInfoForm;
+import com.atguigu.daijia.model.form.order.UpdateOrderCartForm;
 import com.atguigu.daijia.model.vo.order.CurrentOrderInfoVo;
 import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 
@@ -66,5 +68,51 @@ public interface OrderInfoFeignClient {
      */
     @GetMapping("/getOrderInfo/{orderId}")
     Result<OrderInfo> getOrderInfo(@PathVariable("orderId") Long orderId);
+
+
+    /**
+     * 司机到达起始点
+     *
+     * @param orderId
+     * @param driverId
+     * @return
+     */
+    @GetMapping("/driverArriveStartLocation/{orderId}/{driverId}")
+    Result<Boolean> driverArriveStartLocation(@PathVariable("orderId") Long orderId,
+                                              @PathVariable("driverId") Long driverId);
+
+    /**
+     * 更新代驾车辆信息
+     *
+     * @param updateOrderCartForm
+     * @return
+     */
+    @PostMapping("/updateOrderCart")
+    Result<Boolean> updateOrderCart(@RequestBody UpdateOrderCartForm updateOrderCartForm);
+
+    /**
+     * 校验顾客订单合法性
+     *
+     * @param customerId
+     * @param orderId
+     * @return
+     */
+    @GetMapping("/isCustomerCurrentOrder/{customerId}/{orderId}")
+    Result<Boolean> isCustomerCurrentOrder(@PathVariable("customerId") Long customerId,
+                                   @PathVariable("orderId") Long orderId
+    );
+
+    /**
+     * 校验司机订单合法性
+     *
+     * @param driverId
+     * @param orderId
+     * @return
+     */
+    @GetMapping("/isDriverCurrentOrder/{driverId}/{orderId}")
+    Result<Boolean> isDriverOrder(@PathVariable("driverId") Long driverId,
+                                  @PathVariable("orderId") Long orderId
+    );
+
 
 }

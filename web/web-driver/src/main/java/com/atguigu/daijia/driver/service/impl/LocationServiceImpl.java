@@ -8,7 +8,9 @@ import com.atguigu.daijia.driver.client.DriverInfoFeignClient;
 import com.atguigu.daijia.driver.service.LocationService;
 import com.atguigu.daijia.map.client.LocationFeignClient;
 import com.atguigu.daijia.model.form.map.UpdateDriverLocationForm;
+import com.atguigu.daijia.model.form.map.UpdateOrderLocationForm;
 import com.atguigu.daijia.model.vo.driver.DriverSetVo;
+import com.atguigu.daijia.order.client.OrderInfoFeignClient;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +26,8 @@ public class LocationServiceImpl implements LocationService {
     private LocationFeignClient locationFeignClient;
     @Resource
     private DriverInfoFeignClient driverInfoFeignClient;
+    @Resource
+    private OrderInfoFeignClient orderInfoFeignClient;
 
 
     @Override
@@ -45,5 +49,19 @@ public class LocationServiceImpl implements LocationService {
             throw new GuiguException(ResultCodeEnum.NO_START_SERVICE);
         }
 
+    }
+
+    @Override
+    public Boolean updateOrderLocationToCache(Long driverId, UpdateOrderLocationForm updateOrderLocationForm) {
+        Result<Boolean> result = orderInfoFeignClient.isDriverOrder(driverId,
+                updateOrderLocationForm.getOrderId());
+        result.throwOnFailureOrDataIsNull();
+        if (Boolean.FALSE.equals(result.getData())) {
+            throw new GuiguException(ResultCodeEnum.ILLEGAL_REQUEST);
+        }
+        Result<Boolean> updateOrderLocationToCache =
+                locationFeignClient.updateOrderLocationToCache(updateOrderLocationForm);
+        updateOrderLocationToCache.throwOnFailureOrDataIsNull();
+        return updateOrderLocationToCache.getData();
     }
 }

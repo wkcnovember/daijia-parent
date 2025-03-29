@@ -15,7 +15,6 @@ import java.util.Objects;
 
 @Slf4j
 @Service
-@SuppressWarnings({"unchecked", "rawtypes"})
 public class CosServiceImpl implements CosService {
 
     @Resource

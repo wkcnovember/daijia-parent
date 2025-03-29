@@ -10,6 +10,7 @@ import com.atguigu.daijia.model.entity.order.OrderInfo;
 import com.atguigu.daijia.model.entity.order.OrderStatusLog;
 import com.atguigu.daijia.model.enums.OrderStatus;
 import com.atguigu.daijia.model.form.order.OrderInfoForm;
+import com.atguigu.daijia.model.form.order.UpdateOrderCartForm;
 import com.atguigu.daijia.model.vo.order.CurrentOrderInfoVo;
 import com.atguigu.daijia.order.mapper.OrderInfoMapper;
 import com.atguigu.daijia.order.mapper.OrderStatusLogMapper;
@@ -18,8 +19,10 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.aspectj.weaver.ast.Var;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
@@ -196,6 +199,72 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
     @Override
     public OrderInfo getOrderInfo(Long orderId) {
         return getById(orderId);
+    }
+
+    @Override
+    @Transactional
+    public Boolean driverArriveStartLocation(Long orderId, Long driverId) {
+        LambdaQueryWrapper<OrderInfo> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(BaseEntity::getId, orderId)
+                .eq(OrderInfo::getDriverId, driverId);
+        OrderInfo updateOrderInfo = new OrderInfo();
+        updateOrderInfo.setStatus(OrderStatus.DRIVER_ARRIVED.getStatus());
+        updateOrderInfo.setArriveTime(new Date());
+        // 只能更新自己的订单
+        int row = baseMapper.update(updateOrderInfo, queryWrapper);
+        if (row == 1) {
+            // 记录日志
+            log(orderId, OrderStatus.DRIVER_ARRIVED.getStatus());
+        } else {
+            throw new GuiguException(ResultCodeEnum.UPDATE_ERROR);
+        }
+        return Boolean.TRUE;
+    }
+
+    @Transactional
+    @Override
+    public Boolean updateOrderCart(UpdateOrderCartForm updateOrderCartForm) {
+        LambdaQueryWrapper<OrderInfo> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(OrderInfo::getId, updateOrderCartForm.getOrderId());
+        queryWrapper.eq(OrderInfo::getDriverId, updateOrderCartForm.getDriverId());
+
+        OrderInfo updateOrderInfo = new OrderInfo();
+        BeanUtils.copyProperties(updateOrderCartForm, updateOrderInfo);
+        updateOrderInfo.setStatus(OrderStatus.START_SERVICE.getStatus());
+        // 只能更新自己的订单
+        int row = baseMapper.update(updateOrderInfo, queryWrapper);
+        if (row == 1) {
+            // 记录日志
+            this.log(updateOrderCartForm.getOrderId(), OrderStatus.START_SERVICE.getStatus());
+        } else {
+            throw new GuiguException(ResultCodeEnum.UPDATE_ERROR);
+        }
+        return Boolean.TRUE;
+    }
+
+    @Override
+    public Boolean isDriverCurrentOrder(Long driverId, Long orderId) {
+        return isCurrentOrder(false, driverId, orderId);
+    }
+
+    @Override
+    public Boolean isCustomerCurrentOrder(Long customerId, Long orderId) {
+        return isCurrentOrder(true, customerId, orderId);
+    }
+
+
+    private Boolean isCurrentOrder(boolean isCustomer, Long id, Long orderId) {
+        LambdaQueryWrapper<OrderInfo> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(BaseEntity::getId, orderId);
+        if (isCustomer) {
+            wrapper.eq(OrderInfo::getCustomerId, id);
+        } else {
+            wrapper.eq(OrderInfo::getDriverId, id);
+        }
+
+        Long isCurrentOrder = baseMapper.selectCount(wrapper);
+        return isCurrentOrder == 1;
+
     }
 
 

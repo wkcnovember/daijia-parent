@@ -11,9 +11,8 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "监控接口管理")
 @RestController
 @RequestMapping(value="/monitor")
-@SuppressWarnings({"unchecked", "rawtypes"})
 public class MonitorController {
-	
+
 
 }
 

@@ -34,6 +34,7 @@
 ---- 从司机接单池移除
 --redis.call("ZREM", driverKey, orderId)
 --return 1 -- 抢单成功
+-- 将符合条件的订单插入到司机接单池
 local orderId = ARGV[1]
 local driverId = ARGV[2]
 local driver_order_id_zset = "driver:zet:orders:" .. driverId

@@ -10,8 +10,10 @@ import com.atguigu.daijia.driver.client.DriverInfoFeignClient;
 import com.atguigu.daijia.map.service.LocationService;
 import com.atguigu.daijia.model.form.map.SearchNearByDriverForm;
 import com.atguigu.daijia.model.form.map.UpdateDriverLocationForm;
+import com.atguigu.daijia.model.form.map.UpdateOrderLocationForm;
 import com.atguigu.daijia.model.vo.driver.DriverSetVo;
 import com.atguigu.daijia.model.vo.map.NearByDriverVo;
+import com.atguigu.daijia.model.vo.map.OrderLocationVo;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +28,7 @@ import org.springframework.util.CollectionUtils;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
@@ -73,7 +76,7 @@ public class LocationServiceImpl implements LocationService {
 
         List<GeoResult<RedisGeoCommands.GeoLocation<String>>> content = driverRes.getContent();
 
-        // 批量查询司机的个细化推荐
+        // 批量查询司机的个性化设置 比如 接单距离 跑单距离 还有 接单状态
         Result<Map<Long, DriverSetVo>> driverSetMap =
                 driverInfoFeignClient.getDriverSetMap(content.stream()
                         .map(item -> JSON.parseObject(item.getContent().getName(), Long.class)).toList());
@@ -116,6 +119,31 @@ public class LocationServiceImpl implements LocationService {
                     return new NearByDriverVo(driverId,
                             BigDecimal.valueOf(item.getDistance().getValue()).setScale(2, RoundingMode.HALF_UP));
                 }).toList();
+    }
+
+    @Override
+    public Boolean updateOrderLocationToCache(UpdateOrderLocationForm updateOrderLocationForm) {
+
+        String orderKey =  RedisConstant.UPDATE_ORDER_LOCATION + updateOrderLocationForm.getOrderId();
+        // 1. 转为 Map
+        Map<String,String> map = new HashMap<>();
+        map.put("longitude",updateOrderLocationForm.getLongitude().toString());
+        map.put("latitude",updateOrderLocationForm.getLatitude().toString());
+        stringRedisTemplate.opsForHash().putAll(orderKey,map);
+        stringRedisTemplate.expire(orderKey,10, TimeUnit.MINUTES);
+        return Boolean.TRUE;
+    }
+
+    @Override
+    public OrderLocationVo getCacheOrderLocation(Long orderId) {
+        String orderKey =  RedisConstant.UPDATE_ORDER_LOCATION + orderId;
+        // 1. 从 Redis Hash 获取 Map 数据
+        Map<Object, Object> entries = stringRedisTemplate.opsForHash().entries(orderKey);
+        // 2. 将 Map 转为 JSON 字符串
+        String jsonString = JSON.toJSONString(entries);
+        // 3. 使用 FastJSON 将 JSON 字符串转为 OrderLocationVo 对象
+        OrderLocationVo orderLocationVo = JSON.parseObject(jsonString, OrderLocationVo.class);
+        return orderLocationVo;
     }
 
     public static void main(String[] args) {
