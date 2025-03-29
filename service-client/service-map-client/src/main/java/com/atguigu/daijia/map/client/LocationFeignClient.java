@@ -1,13 +1,14 @@
 package com.atguigu.daijia.map.client;
 
 import com.atguigu.daijia.common.result.Result;
+import com.atguigu.daijia.model.form.map.OrderServiceLocationForm;
 import com.atguigu.daijia.model.form.map.SearchNearByDriverForm;
 import com.atguigu.daijia.model.form.map.UpdateDriverLocationForm;
 import com.atguigu.daijia.model.form.map.UpdateOrderLocationForm;
 import com.atguigu.daijia.model.vo.map.NearByDriverVo;
 import com.atguigu.daijia.model.vo.map.OrderLocationVo;
+import com.atguigu.daijia.model.vo.map.OrderServiceLastLocationVo;
 import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -55,6 +56,25 @@ public interface LocationFeignClient {
      */
     @GetMapping("/getCacheOrderLocation/{orderId}")
     Result<OrderLocationVo> getCacheOrderLocation(@PathVariable("orderId") Long orderId);
+
+    /**
+     * 开始代驾服务：保存代驾服务订单位置
+     *
+     * @param orderLocationServiceFormList
+     * @return
+     */
+    @PostMapping("/saveOrderServiceLocation")
+    Result<Boolean> saveOrderServiceLocation(@RequestBody List<OrderServiceLocationForm> orderLocationServiceFormList);
+
+
+    /**
+     * 代驾服务：获取订单服务最后一个位置信息
+     *
+     * @param orderId
+     * @return
+     */
+    @GetMapping("/getOrderServiceLastLocation/{orderId}")
+    Result<OrderServiceLastLocationVo> getOrderServiceLastLocation(@PathVariable Long orderId);
 
 
 }

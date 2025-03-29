@@ -3,9 +3,9 @@ package com.atguigu.daijia.driver.controller;
 import com.atguigu.daijia.common.result.Result;
 import com.atguigu.daijia.driver.service.FileService;
 import com.atguigu.daijia.model.vo.driver.CosUploadVo;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
@@ -21,6 +21,8 @@ public class FileController {
     @Resource
     private FileService fileService;
 
+
+    @Operation(summary = "上传文件(车照,录音等)")
     @PostMapping("/upload")
     public Result<CosUploadVo> upload(@RequestPart("file") MultipartFile file) {
         CosUploadVo cosUploadVo = fileService.upload(file);

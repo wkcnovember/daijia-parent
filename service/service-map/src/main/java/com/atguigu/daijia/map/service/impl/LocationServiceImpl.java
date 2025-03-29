@@ -7,27 +7,38 @@ import com.atguigu.daijia.common.execption.GuiguException;
 import com.atguigu.daijia.common.result.Result;
 import com.atguigu.daijia.common.result.ResultCodeEnum;
 import com.atguigu.daijia.driver.client.DriverInfoFeignClient;
+import com.atguigu.daijia.map.repository.OrderServiceLocationRepository;
 import com.atguigu.daijia.map.service.LocationService;
+import com.atguigu.daijia.model.entity.map.OrderServiceLocation;
+import com.atguigu.daijia.model.form.map.OrderServiceLocationForm;
 import com.atguigu.daijia.model.form.map.SearchNearByDriverForm;
 import com.atguigu.daijia.model.form.map.UpdateDriverLocationForm;
 import com.atguigu.daijia.model.form.map.UpdateOrderLocationForm;
 import com.atguigu.daijia.model.vo.driver.DriverSetVo;
 import com.atguigu.daijia.model.vo.map.NearByDriverVo;
 import com.atguigu.daijia.model.vo.map.OrderLocationVo;
+import com.atguigu.daijia.model.vo.map.OrderServiceLastLocationVo;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.bson.types.ObjectId;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.geo.*;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.redis.connection.RedisGeoCommands;
 import org.springframework.data.redis.core.GeoOperations;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.*;
+import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -38,6 +49,10 @@ public class LocationServiceImpl implements LocationService {
     private StringRedisTemplate stringRedisTemplate;
     @Resource
     private DriverInfoFeignClient driverInfoFeignClient;
+    @Resource
+    private OrderServiceLocationRepository orderServiceLocationRepository;
+    @Resource
+    private MongoTemplate mongoTemplate;
 
 
     @Override
@@ -83,7 +98,7 @@ public class LocationServiceImpl implements LocationService {
 
         driverSetMap.throwOnFailure();
         Map<Long, DriverSetVo> data = driverSetMap.getData();
-        if(CollectionUtils.isEmpty(data)) return Collections.emptyList();
+        if (CollectionUtils.isEmpty(data)) return Collections.emptyList();
         // 根据司机个性化设计信息过滤超过接单范围的司机
         return content.stream()
                 .filter(item -> {
@@ -124,26 +139,59 @@ public class LocationServiceImpl implements LocationService {
     @Override
     public Boolean updateOrderLocationToCache(UpdateOrderLocationForm updateOrderLocationForm) {
 
-        String orderKey =  RedisConstant.UPDATE_ORDER_LOCATION + updateOrderLocationForm.getOrderId();
+        String orderKey = RedisConstant.UPDATE_ORDER_LOCATION + updateOrderLocationForm.getOrderId();
         // 1. 转为 Map
-        Map<String,String> map = new HashMap<>();
-        map.put("longitude",updateOrderLocationForm.getLongitude().toString());
-        map.put("latitude",updateOrderLocationForm.getLatitude().toString());
-        stringRedisTemplate.opsForHash().putAll(orderKey,map);
-        stringRedisTemplate.expire(orderKey,10, TimeUnit.MINUTES);
+        Map<String, String> map = new HashMap<>();
+        map.put("longitude", updateOrderLocationForm.getLongitude().toString());
+        map.put("latitude", updateOrderLocationForm.getLatitude().toString());
+        stringRedisTemplate.opsForHash().putAll(orderKey, map);
+        stringRedisTemplate.expire(orderKey, 10, TimeUnit.MINUTES);
         return Boolean.TRUE;
     }
 
     @Override
     public OrderLocationVo getCacheOrderLocation(Long orderId) {
-        String orderKey =  RedisConstant.UPDATE_ORDER_LOCATION + orderId;
+        String orderKey = RedisConstant.UPDATE_ORDER_LOCATION + orderId;
         // 1. 从 Redis Hash 获取 Map 数据
         Map<Object, Object> entries = stringRedisTemplate.opsForHash().entries(orderKey);
+        if (CollectionUtils.isEmpty(entries)) throw new GuiguException(ResultCodeEnum.DATA_ERROR);
         // 2. 将 Map 转为 JSON 字符串
         String jsonString = JSON.toJSONString(entries);
         // 3. 使用 FastJSON 将 JSON 字符串转为 OrderLocationVo 对象
         OrderLocationVo orderLocationVo = JSON.parseObject(jsonString, OrderLocationVo.class);
         return orderLocationVo;
+    }
+
+    @Override
+    public Boolean saveOrderServiceLocation(List<OrderServiceLocationForm> orderLocationServiceFormList) {
+        List<OrderServiceLocation> orderServiceLocations = orderLocationServiceFormList.stream().map(item -> {
+            OrderServiceLocation orderServiceLocation = new OrderServiceLocation();
+            orderServiceLocation.setOrderId(item.getOrderId());
+            orderServiceLocation.setLongitude(item.getLongitude());
+            orderServiceLocation.setLatitude(item.getLatitude());
+            orderServiceLocation.setId(ObjectId.get().toString());
+            orderServiceLocation.setCreateTime(LocalDateTime.now());
+            return orderServiceLocation;
+        }).toList();
+        orderServiceLocationRepository.saveAll(orderServiceLocations);
+        return Boolean.TRUE;
+    }
+
+    @Override
+    public OrderServiceLastLocationVo getOrderServiceLastLocation(Long orderId) {
+        Query query = new Query();
+        query.addCriteria(Criteria.where("orderId").is(orderId));
+        query.with(Sort.by(Sort.Order.desc("createTime")));
+        query.limit(1);
+        OrderServiceLocation orderServiceLocation = mongoTemplate.findOne(query, OrderServiceLocation.class);
+        if (orderServiceLocation == null) {
+            throw new GuiguException(ResultCodeEnum.DATA_ERROR);
+        }
+        // 封装返回对象
+        OrderServiceLastLocationVo orderServiceLastLocationVo = new OrderServiceLastLocationVo();
+        orderServiceLastLocationVo.setLongitude(orderServiceLocation.getLongitude());
+        orderServiceLastLocationVo.setLatitude(orderServiceLocation.getLatitude());
+        return orderServiceLastLocationVo;
     }
 
     public static void main(String[] args) {

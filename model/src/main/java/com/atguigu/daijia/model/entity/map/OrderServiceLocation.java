@@ -6,7 +6,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.math.BigDecimal;
-import java.util.Date;
+import java.time.LocalDateTime;
 
 @Data
 @Schema(description = "订单代驾服务位置")
@@ -20,13 +20,13 @@ public class OrderServiceLocation {
 	@Schema(description = "订单id")
 	private Long orderId;
 
-	@Schema(description = "金度")
+	@Schema(description = "经度")
 	private BigDecimal latitude;
 
 	@Schema(description = "纬度")
 	private BigDecimal longitude;
 
 	@Schema(description = "创建时间")
-	private Date createTime;
+	private LocalDateTime createTime;
 
 }

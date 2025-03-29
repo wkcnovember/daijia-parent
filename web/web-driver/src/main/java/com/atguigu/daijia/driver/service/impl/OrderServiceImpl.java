@@ -5,15 +5,14 @@ import com.atguigu.daijia.common.result.Result;
 import com.atguigu.daijia.common.result.ResultCodeEnum;
 import com.atguigu.daijia.customer.client.CustomerInfoFeignClient;
 import com.atguigu.daijia.dispatch.client.NewOrderFeignClient;
-import com.atguigu.daijia.driver.client.DriverInfoFeignClient;
 import com.atguigu.daijia.driver.service.OrderService;
 import com.atguigu.daijia.map.client.MapFeignClient;
 import com.atguigu.daijia.model.convert.order.OrderInfoConvert;
 import com.atguigu.daijia.model.entity.order.OrderInfo;
 import com.atguigu.daijia.model.form.map.CalculateDrivingLineForm;
+import com.atguigu.daijia.model.form.order.StartDriveForm;
 import com.atguigu.daijia.model.form.order.UpdateOrderCartForm;
 import com.atguigu.daijia.model.vo.customer.CustomerInfoVo;
-import com.atguigu.daijia.model.vo.driver.DriverInfoVo;
 import com.atguigu.daijia.model.vo.map.DrivingLineVo;
 import com.atguigu.daijia.model.vo.order.CurrentOrderInfoVo;
 import com.atguigu.daijia.model.vo.order.NewOrderDataVo;
@@ -21,7 +20,6 @@ import com.atguigu.daijia.model.vo.order.OrderInfoVo;
 import com.atguigu.daijia.order.client.OrderInfoFeignClient;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -42,8 +40,7 @@ public class OrderServiceImpl implements OrderService {
     private CustomerInfoFeignClient customerInfoFeignClient;
     @Resource
     private MapFeignClient mapFeignClient;
-    @Resource
-    private DriverInfoFeignClient driverInfoFeignClient;
+
 
     @Override
     public Integer getOrderStatus(Long orderId) {
@@ -99,6 +96,11 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public Boolean driverArriveStartLocation(Long orderId, Long driverId) {
+        Result<Boolean> isValidate = orderInfoFeignClient.isDriverOrder(driverId, orderId);
+        isValidate.throwOnFailureOrDataIsNull();
+        if(Boolean.FALSE.equals(isValidate.getData())) {
+            throw new GuiguException(ResultCodeEnum.ILLEGAL_REQUEST);
+        }
         Result<Boolean> result = orderInfoFeignClient.driverArriveStartLocation(orderId, driverId);
         result.throwOnFailureOrDataIsNull();
         return result.getData();
@@ -106,9 +108,30 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public Boolean updateOrderCart(UpdateOrderCartForm updateOrderCartForm) {
+        Long orderId = updateOrderCartForm.getOrderId();
+        Long driverId = updateOrderCartForm.getDriverId();
+        Result<Boolean> isValidate = orderInfoFeignClient.isDriverOrder(driverId, orderId);
+        isValidate.throwOnFailureOrDataIsNull();
+        if(Boolean.FALSE.equals(isValidate.getData())) {
+            throw new GuiguException(ResultCodeEnum.ILLEGAL_REQUEST);
+        }
         Result<Boolean> result = orderInfoFeignClient.updateOrderCart(updateOrderCartForm);
         result.throwOnFailureOrDataIsNull();
         return result.getData();
+    }
+
+    @Override
+    public Boolean startDrive(StartDriveForm startDriveForm) {
+        Long orderId = startDriveForm.getOrderId();
+        Long driverId = startDriveForm.getDriverId();
+        Result<Boolean> isValidate = orderInfoFeignClient.isDriverOrder(driverId, orderId);
+        isValidate.throwOnFailureOrDataIsNull();
+        if(Boolean.FALSE.equals(isValidate.getData())) {
+            throw new GuiguException(ResultCodeEnum.ILLEGAL_REQUEST);
+        }
+        Result<Boolean> startDrive = orderInfoFeignClient.startDrive(startDriveForm);
+        startDrive.throwOnFailureOrDataIsNull();
+        return startDrive.getData();
     }
 
 

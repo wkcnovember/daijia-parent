@@ -11,6 +11,7 @@ import com.atguigu.daijia.model.vo.customer.ExpectOrderVo;
 import com.atguigu.daijia.model.vo.driver.DriverInfoVo;
 import com.atguigu.daijia.model.vo.map.DrivingLineVo;
 import com.atguigu.daijia.model.vo.map.OrderLocationVo;
+import com.atguigu.daijia.model.vo.map.OrderServiceLastLocationVo;
 import com.atguigu.daijia.model.vo.order.CurrentOrderInfoVo;
 import com.atguigu.daijia.model.vo.order.OrderInfoVo;
 import io.swagger.v3.oas.annotations.Operation;
@@ -19,8 +20,6 @@ import jakarta.annotation.Resource;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -41,6 +40,7 @@ public class OrderController {
         Long userId = AuthContextHolder.getUserId();
         return Result.ok(orderService.searchCustomerCurrentOrder(userId));
     }
+
     @Operation(summary = "预估订单数据")
     @KjyLogin
     @PostMapping("/expectOrder")
@@ -77,6 +77,7 @@ public class OrderController {
         Long customerId = AuthContextHolder.getUserId();
         return Result.ok(orderService.getOrderInfo(orderId, customerId));
     }
+
     @Operation(summary = "根据订单id获取司机基本信息")
     @KjyLogin
     @GetMapping("/getDriverInfo/{orderId}")
@@ -89,9 +90,9 @@ public class OrderController {
     @Operation(summary = "司机赶往代驾起始点：获取订单经纬度位置")
     @KjyLogin
     @GetMapping("/getCacheOrderLocation/{orderId}")
-    public Result<OrderLocationVo> getOrderLocation(@PathVariable("orderId") Long orderId) {
+    public Result<OrderLocationVo> getOrderLocation(@PathVariable("orderId") @NotNull @Positive Long orderId) {
         Long customerId = AuthContextHolder.getUserId();
-        return Result.ok(orderService.getCacheOrderLocation(customerId,orderId));
+        return Result.ok(orderService.getCacheOrderLocation(customerId, orderId));
     }
 
     @Operation(summary = "计算最佳驾驶线路")
@@ -99,6 +100,14 @@ public class OrderController {
     @PostMapping("/calculateDrivingLine")
     public Result<DrivingLineVo> calculateDrivingLine(@RequestBody @Validated CalculateDrivingLineForm calculateDrivingLineForm) {
         return Result.ok(orderService.calculateDrivingLine(calculateDrivingLineForm));
+    }
+
+    @Operation(summary = "代驾服务：获取订单服务最后一个位置信息")
+    @KjyLogin
+    @GetMapping("/getOrderServiceLastLocation/{orderId}")
+    public Result<OrderServiceLastLocationVo> getOrderServiceLastLocation(@PathVariable @NotNull @Positive Long orderId) {
+        Long customerId = AuthContextHolder.getUserId();
+        return Result.ok(orderService.getOrderServiceLastLocation(customerId, orderId));
     }
 
 }

@@ -7,6 +7,11 @@ public class RedisConstant {
     public static final String DRIVER_ORDER_INFO_HASH = "driver:hash:orders:";
 
 
+    // 司机抢到后订单,订单与 乘客和司机的标示
+    public static final String ORDER_DRIVER_CUSTOMER_HASH = "orders:dc:";
+
+    // 司机抢到后订单,订单与 乘客和司机的标示 超时时间
+    public static final int ORDER_DRIVER_CUSTOMER_TIMEOUT = 10;
 
 
     //用户登录

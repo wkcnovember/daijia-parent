@@ -3,6 +3,7 @@ package com.atguigu.daijia.customer.service.impl;
 import com.atguigu.daijia.common.execption.GuiguException;
 import com.atguigu.daijia.common.result.Result;
 import com.atguigu.daijia.common.result.ResultCodeEnum;
+import com.atguigu.daijia.common.util.AuthContextHolder;
 import com.atguigu.daijia.customer.service.OrderService;
 import com.atguigu.daijia.dispatch.client.NewOrderFeignClient;
 import com.atguigu.daijia.driver.client.DriverInfoFeignClient;
@@ -22,6 +23,7 @@ import com.atguigu.daijia.model.vo.dispatch.NewOrderTaskVo;
 import com.atguigu.daijia.model.vo.driver.DriverInfoVo;
 import com.atguigu.daijia.model.vo.map.DrivingLineVo;
 import com.atguigu.daijia.model.vo.map.OrderLocationVo;
+import com.atguigu.daijia.model.vo.map.OrderServiceLastLocationVo;
 import com.atguigu.daijia.model.vo.order.CurrentOrderInfoVo;
 import com.atguigu.daijia.model.vo.order.OrderInfoVo;
 import com.atguigu.daijia.model.vo.rules.FeeRuleResponseVo;
@@ -29,7 +31,6 @@ import com.atguigu.daijia.order.client.OrderInfoFeignClient;
 import com.atguigu.daijia.rules.client.FeeRuleFeignClient;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.aspectj.weaver.ast.Var;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -154,6 +155,12 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public Integer getOrderStatus(Long orderId) {
+        Long customerId = AuthContextHolder.getUserId();
+        Result<Boolean> result = orderInfoFeignClient.isCustomerCurrentOrder(customerId, orderId);
+        result.throwOnFailureOrDataIsNull();
+        if (Boolean.FALSE.equals(result.getData())) {
+            throw new GuiguException(ResultCodeEnum.ILLEGAL_REQUEST);
+        }
         Result<Integer> orderStatus = orderInfoFeignClient.getOrderStatus(orderId);
         orderStatus.throwOnFailure();
         return orderStatus.getData();
@@ -161,6 +168,12 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public Boolean customerCancelNoAcceptOrder(Long orderId) {
+        Long customerId = AuthContextHolder.getUserId();
+        Result<Boolean> isValidateResult = orderInfoFeignClient.isCustomerCurrentOrder(customerId, orderId);
+        isValidateResult.throwOnFailureOrDataIsNull();
+        if (Boolean.FALSE.equals(isValidateResult.getData())) {
+            throw new GuiguException(ResultCodeEnum.ILLEGAL_REQUEST);
+        }
         Result<Boolean> result = orderInfoFeignClient.updateOrderStatus(orderId,
                 OrderStatus.CUSTOMER_CANCEL_ORDER.getStatus());
         result.throwOnFailureOrDataIsNull();
@@ -221,5 +234,18 @@ public class OrderServiceImpl implements OrderService {
         Result<DrivingLineVo> drivingLineVoResult = mapFeignClient.calculateDrivingLine(calculateDrivingLineForm);
         drivingLineVoResult.throwOnFailureOrDataIsNull();
         return drivingLineVoResult.getData();
+    }
+
+    @Override
+    public OrderServiceLastLocationVo getOrderServiceLastLocation(Long customerId, Long orderId) {
+        Result<Boolean> result = orderInfoFeignClient.isCustomerCurrentOrder(customerId, orderId);
+        result.throwOnFailureOrDataIsNull();
+        if (Boolean.FALSE.equals(result.getData())) {
+            throw new GuiguException(ResultCodeEnum.ILLEGAL_REQUEST);
+        }
+        Result<OrderServiceLastLocationVo> orderServiceLastLocation =
+                locationFeignClient.getOrderServiceLastLocation(orderId);
+        orderServiceLastLocation.throwOnFailureOrDataIsNull();
+        return orderServiceLastLocation.getData();
     }
 }

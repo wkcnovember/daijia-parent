@@ -3,10 +3,10 @@ package com.atguigu.daijia.order.client;
 import com.atguigu.daijia.common.result.Result;
 import com.atguigu.daijia.model.entity.order.OrderInfo;
 import com.atguigu.daijia.model.form.order.OrderInfoForm;
+import com.atguigu.daijia.model.form.order.StartDriveForm;
 import com.atguigu.daijia.model.form.order.UpdateOrderCartForm;
 import com.atguigu.daijia.model.vo.order.CurrentOrderInfoVo;
 import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 
@@ -99,7 +99,7 @@ public interface OrderInfoFeignClient {
      */
     @GetMapping("/isCustomerCurrentOrder/{customerId}/{orderId}")
     Result<Boolean> isCustomerCurrentOrder(@PathVariable("customerId") Long customerId,
-                                   @PathVariable("orderId") Long orderId
+                                           @PathVariable("orderId") Long orderId
     );
 
     /**
@@ -113,6 +113,15 @@ public interface OrderInfoFeignClient {
     Result<Boolean> isDriverOrder(@PathVariable("driverId") Long driverId,
                                   @PathVariable("orderId") Long orderId
     );
+
+    /**
+     * 开始代驾服务
+     *
+     * @param startDriveForm
+     * @return
+     */
+    @PostMapping("/startDrive")
+    Result<Boolean> startDrive(@RequestBody StartDriveForm startDriveForm);
 
 
 }

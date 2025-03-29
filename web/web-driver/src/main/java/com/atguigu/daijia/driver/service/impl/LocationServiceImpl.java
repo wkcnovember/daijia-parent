@@ -7,15 +7,16 @@ import com.atguigu.daijia.common.result.ResultCodeEnum;
 import com.atguigu.daijia.driver.client.DriverInfoFeignClient;
 import com.atguigu.daijia.driver.service.LocationService;
 import com.atguigu.daijia.map.client.LocationFeignClient;
+import com.atguigu.daijia.model.form.map.OrderServiceLocationForm;
 import com.atguigu.daijia.model.form.map.UpdateDriverLocationForm;
 import com.atguigu.daijia.model.form.map.UpdateOrderLocationForm;
 import com.atguigu.daijia.model.vo.driver.DriverSetVo;
 import com.atguigu.daijia.order.client.OrderInfoFeignClient;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Objects;
 
 @Slf4j
@@ -63,5 +64,13 @@ public class LocationServiceImpl implements LocationService {
                 locationFeignClient.updateOrderLocationToCache(updateOrderLocationForm);
         updateOrderLocationToCache.throwOnFailureOrDataIsNull();
         return updateOrderLocationToCache.getData();
+    }
+
+    // todo  暂时不校验是不是司机的订单,  前端可以优化传递的参数
+    @Override
+    public Boolean saveOrderServiceLocation(List<OrderServiceLocationForm> orderLocationServiceFormList) {
+        Result<Boolean> result = locationFeignClient.saveOrderServiceLocation(orderLocationServiceFormList);
+        result.throwOnFailureOrDataIsNull();
+        return result.getData();
     }
 }

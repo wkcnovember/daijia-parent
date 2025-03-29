@@ -24,4 +24,13 @@ public class LuaConfig {
         script.setResultType(Long.class); // 返回值类型
         return script;
     }
+
+    @Bean(name = "orderDcMapping")
+    public DefaultRedisScript<Long> orderDcMapping() {
+        DefaultRedisScript<Long> script = new DefaultRedisScript<>();
+        script.setScriptSource(new ResourceScriptSource(
+                new ClassPathResource("lua/add_order_customer_driver_mapper.lua")));
+        script.setResultType(Long.class); // 返回值类型
+        return script;
+    }
 }
