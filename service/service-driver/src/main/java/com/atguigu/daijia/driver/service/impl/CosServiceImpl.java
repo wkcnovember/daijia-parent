@@ -3,6 +3,7 @@ package com.atguigu.daijia.driver.service.impl;
 import cn.hutool.core.date.DateUtil;
 import com.atguigu.daijia.common.execption.GuiguException;
 import com.atguigu.daijia.common.result.ResultCodeEnum;
+import com.atguigu.daijia.driver.service.CiService;
 import com.atguigu.daijia.driver.service.CosService;
 import com.atguigu.daijia.model.vo.driver.CosUploadVo;
 import jakarta.annotation.Resource;
@@ -20,12 +21,14 @@ import java.util.Date;
 
 @Slf4j
 @Service
-@SuppressWarnings({"unchecked", "rawtypes"})
 public class CosServiceImpl implements CosService {
 
     // 注入实列
     @Resource
     private FileStorageService fileStorageService;
+
+    @Resource
+    private CiService ciService;
 
     @Override
     public CosUploadVo upload(MultipartFile file, String type) {
@@ -35,6 +38,15 @@ public class CosServiceImpl implements CosService {
             // 指定oss保存文件路径
             // 上传图片，成功返回文件信息
             fileInfo = fileStorageService.of(file).setPath(objectName).upload();
+
+            String uploadPath = fileInfo.getPath() + fileInfo.getFilename();
+            // 审核图片
+            Boolean isAuditing = ciService.imageAuditing(uploadPath);
+            if(Boolean.FALSE.equals(isAuditing)) {
+                //删除违规图片
+                fileStorageService.delete(uploadPath);
+                throw new GuiguException(ResultCodeEnum.IMAGE_AUDITION_FAIL);
+            }
 
         } catch (Exception e) {
             log.error("CosServiceImpl upload 上传文件={},失败原因={}", file.getName(), e.getMessage());

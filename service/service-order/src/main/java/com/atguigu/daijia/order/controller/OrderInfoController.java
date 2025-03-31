@@ -28,7 +28,7 @@ public class OrderInfoController {
 
     @Operation(summary = "保存订单信息")
     @PostMapping("/saveOrderInfo")
-    public Result<Long> saveOrderInfo(@RequestBody @Validated OrderInfoForm orderInfoForm) {
+    public Result<Long> saveOrderInfo(@RequestBody @Validated({ServiceGroup.class, Default.class}) OrderInfoForm orderInfoForm) {
         return Result.ok(orderInfoService.saveOrderInfo(orderInfoForm));
     }
 
@@ -99,7 +99,7 @@ public class OrderInfoController {
 
     @Operation(summary = "更新代驾车辆信息")
     @PostMapping("/updateOrderCart")
-    public Result<Boolean> updateOrderCart(@RequestBody @Validated UpdateOrderCartForm updateOrderCartForm) {
+    public Result<Boolean> updateOrderCart(@RequestBody @Validated({ServiceGroup.class, Default.class}) UpdateOrderCartForm updateOrderCartForm) {
         return Result.ok(orderInfoService.updateOrderCart(updateOrderCartForm));
     }
 

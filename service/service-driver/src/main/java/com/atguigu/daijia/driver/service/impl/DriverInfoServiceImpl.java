@@ -285,7 +285,12 @@ public class DriverInfoServiceImpl extends ServiceImpl<DriverInfoMapper, DriverI
 
     @Override
     public DriverSetVo getDriverSet(Long driverId) {
-        LambdaQueryWrapper<DriverSet> eq = new LambdaQueryWrapper<DriverSet>().eq(DriverSet::getDriverId, driverId);
+        LambdaQueryWrapper<DriverSet> eq = new LambdaQueryWrapper<DriverSet>()
+                .select(DriverSet::getDriverId, DriverSet::getServiceStatus,
+                        DriverSet::getAcceptDistance, DriverSet::getOrderDistance,
+                        DriverSet::getAutoAccept
+                )
+                .eq(DriverSet::getDriverId, driverId);
         DriverSet driverSet = driverSetMapper.selectOne(eq);
         if (null == driverSet) throw new GuiguException(ResultCodeEnum.DATA_ERROR);
         return driverSetConvert.toDriverSetVo(driverSet);
@@ -380,7 +385,7 @@ public class DriverInfoServiceImpl extends ServiceImpl<DriverInfoMapper, DriverI
                         DriverSet::getOrderDistance,
                         DriverSet::getAcceptDistance,
                         DriverSet::getAutoAccept
-                        )
+                )
                 // 正在的司机
                 .eq(DriverSet::getServiceStatus, DriverConstant.ServiceStatus.ACCEPTING_ORDERS.getStatus())
                 .in(DriverSet::getDriverId, driverIds);
@@ -400,7 +405,7 @@ public class DriverInfoServiceImpl extends ServiceImpl<DriverInfoMapper, DriverI
                         DriverInfo::getOrderCount)
                 .eq(BaseEntity::getId, driverId);
         DriverInfo driverInfo = baseMapper.selectOne(wrapper);
-        if(driverInfo == null) {
+        if (driverInfo == null) {
             throw new GuiguException(ResultCodeEnum.DATA_ERROR);
         }
         DriverInfoVo driverInfoVo = driverInfoConvert.toDriverInfoVo(driverInfo);

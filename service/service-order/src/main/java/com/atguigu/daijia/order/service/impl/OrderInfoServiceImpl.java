@@ -7,6 +7,7 @@ import com.atguigu.daijia.common.result.ResultCodeEnum;
 import com.atguigu.daijia.model.convert.order.OrderInfoConvert;
 import com.atguigu.daijia.model.entity.base.BaseEntity;
 import com.atguigu.daijia.model.entity.order.OrderInfo;
+import com.atguigu.daijia.model.entity.order.OrderMonitor;
 import com.atguigu.daijia.model.entity.order.OrderStatusLog;
 import com.atguigu.daijia.model.enums.OrderStatus;
 import com.atguigu.daijia.model.form.order.OrderInfoForm;
@@ -17,6 +18,7 @@ import com.atguigu.daijia.model.vo.order.CurrentOrderInfoVo;
 import com.atguigu.daijia.order.mapper.OrderInfoMapper;
 import com.atguigu.daijia.order.mapper.OrderStatusLogMapper;
 import com.atguigu.daijia.order.service.OrderInfoService;
+import com.atguigu.daijia.order.service.OrderMonitorService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import jakarta.annotation.Resource;
@@ -33,7 +35,8 @@ import org.springframework.util.CollectionUtils;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
-import static com.atguigu.daijia.common.constant.RedisConstant.*;
+import static com.atguigu.daijia.common.constant.RedisConstant.ORDER_DRIVER_CUSTOMER_HASH;
+import static com.atguigu.daijia.common.constant.RedisConstant.ORDER_DRIVER_CUSTOMER_TIMEOUT;
 
 @Service
 @Slf4j
@@ -55,6 +58,9 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
     @Resource(name = "orderDcMapping")
     private DefaultRedisScript<Long> orderDcMapping;
 
+    @Resource
+    private OrderMonitorService orderMonitorService;
+
     @Override
     @Transactional
     public Long saveOrderInfo(OrderInfoForm orderInfoForm) {
@@ -66,7 +72,7 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
         save(orderInfo);
         log(orderInfo.getId(), orderInfo.getStatus());
         Long orderId = orderInfo.getId();
-        //
+        // 保存订单与乘客映射关系
         stringRedisTemplate.execute(orderDcMapping, Collections.emptyList(),
                 orderId.toString(),
                 "",
@@ -121,13 +127,10 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
                 throw new GuiguException(ResultCodeEnum.COB_NEW_ORDER_FAIL);
             }
             // 1.此订单是否存在 + 属于用户的订单吗?
-            // String repeatKey =
-            //         RedisConstant.DRIVER_ORDER_REPEAT_LIST + orderId;
 
             String key = RedisConstant.DRIVER_ORDER_INFO_HASH + driverId;
             Boolean isExists = stringRedisTemplate.opsForHash().hasKey(
                     key, orderId.toString());
-            // .isMember(repeatKey, driverId.toString());
 
             if (Boolean.FALSE.equals(isExists)) {
                 // 抢单失败
@@ -143,6 +146,7 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
                             .eq(OrderInfo::getStatus, OrderStatus.WAITING_ACCEPT.getStatus());
             OrderInfo orderInfo = baseMapper.selectOne(wrapper);
             if (orderInfo == null) {
+                // 清楚脏数据
                 delOrderZsetAndHash(driverId, orderId);
                 log.warn("此订单不存在~");
                 throw new GuiguException(ResultCodeEnum.NOT_EXISTS_ORDER);
@@ -151,6 +155,7 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
             // 订单不在接单状态 删除redis对应的order缓存
             if (!Objects.equals(OrderStatus.WAITING_ACCEPT.getStatus(), orderInfo.getStatus())) {
                 log.warn("此订单处于非等待状态~");
+                // 清楚脏数据
                 delOrderZsetAndHash(driverId, orderId);
             }
             // 修改订单信息
@@ -170,8 +175,14 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
                     orderInfo.getCustomerId().toString(),
                     String.valueOf(ORDER_DRIVER_CUSTOMER_TIMEOUT)
             );
+
+
             // 删除订单标识位
-            delOrderZsetAndHash(driverId, orderId);
+            // delOrderZsetAndHash(driverId, orderId);
+
+
+            // 记录日志
+            log(orderId, orderInfo.getStatus());
             return Boolean.TRUE;
 
         } catch (GuiguException e) {
@@ -280,6 +291,10 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
         } else {
             throw new GuiguException(ResultCodeEnum.UPDATE_ERROR);
         }
+        //初始化订单监控统计数据
+        OrderMonitor orderMonitor = new OrderMonitor();
+        orderMonitor.setOrderId(startDriveForm.getOrderId());
+        orderMonitorService.saveOrderMonitor(orderMonitor);
         return Boolean.TRUE;
     }
 

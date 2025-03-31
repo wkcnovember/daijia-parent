@@ -17,7 +17,8 @@ public class OrderInfoForm {
 
 
     @Schema(description = "客户ID")
-    @NotNull
+    @NotNull(groups = {ServiceGroup.class})
+    @Positive(groups = {ServiceGroup.class})
 	private Long customerId;
 
     @Schema(description = "订单号")

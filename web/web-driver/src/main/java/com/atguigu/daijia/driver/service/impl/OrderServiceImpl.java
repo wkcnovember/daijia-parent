@@ -3,8 +3,10 @@ package com.atguigu.daijia.driver.service.impl;
 import com.atguigu.daijia.common.execption.GuiguException;
 import com.atguigu.daijia.common.result.Result;
 import com.atguigu.daijia.common.result.ResultCodeEnum;
+import com.atguigu.daijia.common.util.AuthContextHolder;
 import com.atguigu.daijia.customer.client.CustomerInfoFeignClient;
 import com.atguigu.daijia.dispatch.client.NewOrderFeignClient;
+import com.atguigu.daijia.driver.client.DriverInfoFeignClient;
 import com.atguigu.daijia.driver.service.OrderService;
 import com.atguigu.daijia.map.client.MapFeignClient;
 import com.atguigu.daijia.model.convert.order.OrderInfoConvert;
@@ -41,9 +43,17 @@ public class OrderServiceImpl implements OrderService {
     @Resource
     private MapFeignClient mapFeignClient;
 
+    @Resource
+    private  DriverInfoFeignClient driverInfoFeignClient;
+
 
     @Override
     public Integer getOrderStatus(Long orderId) {
+        Result<Boolean> result = orderInfoFeignClient.isDriverOrder(AuthContextHolder.getUserId(), orderId);
+        result.throwOnFailureOrDataIsNull();
+        if(Boolean.FALSE.equals(result.getData())) {
+            throw new GuiguException(ResultCodeEnum.ILLEGAL_REQUEST);
+        }
         Result<Integer> orderStatus = orderInfoFeignClient.getOrderStatus(orderId);
         orderStatus.throwOnFailureOrDataIsNull();
         return orderStatus.getData();

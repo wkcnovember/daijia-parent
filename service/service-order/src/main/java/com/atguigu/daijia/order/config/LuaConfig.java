@@ -25,6 +25,10 @@ public class LuaConfig {
         return script;
     }
 
+    /**
+     *  映射订单与乘客和司机的关系,校验合法性
+     * @return
+     */
     @Bean(name = "orderDcMapping")
     public DefaultRedisScript<Long> orderDcMapping() {
         DefaultRedisScript<Long> script = new DefaultRedisScript<>();

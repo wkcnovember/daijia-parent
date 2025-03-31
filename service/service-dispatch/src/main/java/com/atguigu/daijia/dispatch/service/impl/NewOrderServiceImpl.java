@@ -1,8 +1,6 @@
 package com.atguigu.daijia.dispatch.service.impl;
 
 import com.alibaba.fastjson2.JSON;
-import com.alibaba.fastjson2.JSONArray;
-import com.alibaba.fastjson2.JSONObject;
 import com.atguigu.daijia.common.constant.RedisConstant;
 import com.atguigu.daijia.common.execption.GuiguException;
 import com.atguigu.daijia.common.result.Result;
@@ -23,19 +21,15 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.context.annotation.Bean;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.dao.DataAccessException;
-import org.springframework.data.redis.connection.RedisConnection;
-import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
-import org.springframework.scripting.support.ResourceScriptSource;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
-import java.util.*;
-import java.util.concurrent.TimeUnit;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
 
 import static com.atguigu.daijia.common.constant.RedisConstant.DRIVER_ORDER_TEMP_LIST_EXPIRES_TIME;
 
@@ -229,7 +223,8 @@ public class NewOrderServiceImpl implements NewOrderService {
 
         long min = System.currentTimeMillis() - DRIVER_ORDER_TEMP_LIST_EXPIRES_TIME * 1000;
 
-        Set<String> orderIdsJson = stringRedisTemplate.opsForZSet().rangeByScore(key, min, System.currentTimeMillis());
+        // 查最近的15分钟内的订单
+        Set<String> orderIdsJson = stringRedisTemplate.opsForZSet().reverseRangeByScore(key, min, System.currentTimeMillis());
         if (CollectionUtils.isEmpty(orderIdsJson)) {
             return Collections.emptyList();
 

@@ -1,9 +1,11 @@
 package com.atguigu.daijia.order.client;
 
 import com.atguigu.daijia.common.result.Result;
+import com.atguigu.daijia.model.entity.order.OrderMonitor;
 import com.atguigu.daijia.model.entity.order.OrderMonitorRecord;
 import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
@@ -18,7 +20,25 @@ public interface OrderMonitorFeignClient {
      * @return
      */
     @PostMapping("/saveOrderMonitorRecord")
-    Result<Boolean> saveMonitorRecord(@RequestBody @Validated OrderMonitorRecord orderMonitorRecord);
+    Result<Boolean> saveMonitorRecord(@RequestBody OrderMonitorRecord orderMonitorRecord);
+
+    /**
+     * 根据订单id获取订单监控信息
+     *
+     * @param orderId
+     * @return
+     */
+    @GetMapping("/getOrderMonitor/{orderId}")
+    Result<OrderMonitor> getOrderMonitor(@PathVariable("orderId") Long orderId);
+
+    /**
+     * 更新订单监控信息
+     *
+     * @param OrderMonitor
+     * @return
+     */
+    @PostMapping("/updateOrderMonitor")
+    Result<Boolean> updateOrderMonitor(@RequestBody OrderMonitor OrderMonitor);
 
 
 }

@@ -87,7 +87,7 @@ public class OrderController {
     }
 
 
-    @Operation(summary = "司机赶往代驾起始点：获取订单经纬度位置")
+    @Operation(summary = "司机赶往代驾起始点：获取司机经纬度位置")
     @KjyLogin
     @GetMapping("/getCacheOrderLocation/{orderId}")
     public Result<OrderLocationVo> getOrderLocation(@PathVariable("orderId") @NotNull @Positive Long orderId) {

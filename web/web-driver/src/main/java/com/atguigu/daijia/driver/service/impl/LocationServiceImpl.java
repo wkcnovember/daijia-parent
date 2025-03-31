@@ -4,6 +4,7 @@ import com.atguigu.daijia.common.constant.DriverConstant;
 import com.atguigu.daijia.common.execption.GuiguException;
 import com.atguigu.daijia.common.result.Result;
 import com.atguigu.daijia.common.result.ResultCodeEnum;
+import com.atguigu.daijia.common.util.AuthContextHolder;
 import com.atguigu.daijia.driver.client.DriverInfoFeignClient;
 import com.atguigu.daijia.driver.service.LocationService;
 import com.atguigu.daijia.map.client.LocationFeignClient;
@@ -66,9 +67,16 @@ public class LocationServiceImpl implements LocationService {
         return updateOrderLocationToCache.getData();
     }
 
-    // todo  暂时不校验是不是司机的订单,  前端可以优化传递的参数
     @Override
     public Boolean saveOrderServiceLocation(List<OrderServiceLocationForm> orderLocationServiceFormList) {
+        Long orderId = orderLocationServiceFormList.get(0).getOrderId();
+        Long driverId = AuthContextHolder.getUserId();
+        Result<Boolean> driverOrderRes = orderInfoFeignClient.isDriverOrder(driverId, orderId);
+        driverOrderRes.throwOnFailureOrDataIsNull();
+        Boolean data = driverOrderRes.getData();
+        if (Boolean.FALSE.equals(data)) {
+            throw new GuiguException(ResultCodeEnum.ILLEGAL_REQUEST);
+        }
         Result<Boolean> result = locationFeignClient.saveOrderServiceLocation(orderLocationServiceFormList);
         result.throwOnFailureOrDataIsNull();
         return result.getData();
