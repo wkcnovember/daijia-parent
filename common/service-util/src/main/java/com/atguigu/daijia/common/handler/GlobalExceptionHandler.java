@@ -4,9 +4,7 @@ import com.atguigu.daijia.common.execption.GuiguException;
 import com.atguigu.daijia.common.result.Result;
 import com.atguigu.daijia.common.result.ResultCodeEnum;
 import feign.codec.DecodeException;
-import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
-import jakarta.validation.ValidationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.BindException;
 import org.springframework.validation.BindingResult;
@@ -19,8 +17,6 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 
 /**
@@ -64,7 +60,7 @@ public class GlobalExceptionHandler {
     @ResponseBody
     public Result llegalArgumentException(Exception e) {
         e.printStackTrace();
-        log.error("触发异常拦截: " + e.getMessage(), e);
+        log.warn("触发异常拦截: " + e.getMessage(), e);
         return Result.build(null, ResultCodeEnum.ARGUMENT_VALID_ERROR);
     }
 
@@ -90,7 +86,7 @@ public class GlobalExceptionHandler {
         Map<String, Object> errorMap = new HashMap<>();
         List<FieldError> fieldErrors = result.getFieldErrors();
         fieldErrors.forEach(error -> {
-            log.error("field: " + error.getField() + ", msg:" + error.getDefaultMessage());
+            log.warn("field: " + error.getField() + ", msg:" + error.getDefaultMessage());
             errorMap.put(error.getField(), error.getDefaultMessage());
         });
         return Result.build(errorMap, ResultCodeEnum.ARGUMENT_VALID_ERROR);
@@ -104,8 +100,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ConstraintViolationException.class)
     @ResponseBody
     public Result handleConstraintViolationException(ConstraintViolationException ex) {
+        // 提取错误信息
+        List<String> errors = ex.getConstraintViolations().stream()
+                .map(violation -> {
+                    String field = violation.getPropertyPath().toString(); // 获取校验失败的字段名
+                    String message = violation.getMessage();              // 获取错误提示
+                    return String.format("%s: %s", field, message);      // 组合字段名和错误信息
+                })
+                .toList();
 
-        return Result.build(null,ResultCodeEnum.ARGUMENT_VALID_ERROR);
+        return Result.build(errors,ResultCodeEnum.ARGUMENT_VALID_ERROR);
     }
     /**
      * 捕获表单提交参数校验异常

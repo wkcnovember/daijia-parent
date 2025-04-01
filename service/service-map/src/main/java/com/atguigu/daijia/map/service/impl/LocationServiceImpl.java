@@ -31,6 +31,7 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.redis.connection.RedisGeoCommands;
 import org.springframework.data.redis.core.GeoOperations;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
@@ -38,10 +39,8 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
@@ -141,18 +140,41 @@ public class LocationServiceImpl implements LocationService {
                 }).toList();
     }
 
-    @Override
-    public Boolean updateOrderLocationToCache(UpdateOrderLocationForm updateOrderLocationForm) {
 
-        String orderKey = RedisConstant.UPDATE_ORDER_LOCATION + updateOrderLocationForm.getOrderId();
-        // 1. 转为 Map
-        Map<String, String> map = new HashMap<>();
-        map.put("longitude", updateOrderLocationForm.getLongitude().toString());
-        map.put("latitude", updateOrderLocationForm.getLatitude().toString());
-        stringRedisTemplate.opsForHash().putAll(orderKey, map);
-        stringRedisTemplate.expire(orderKey, 10, TimeUnit.MINUTES);
+    private static final String UPDATE_ORDER_LOCATION_SCRIPT =
+            "redis.call('HMSET', KEYS[1], 'longitude', ARGV[1], 'latitude', ARGV[2])\n" +
+                    "return redis.call('EXPIRE', KEYS[1], ARGV[3])";
+
+    /**
+     *  lua 保证 添加和过期一致性
+     * @param form
+     * @return
+     */
+    @Override
+    public Boolean updateOrderLocationToCache(UpdateOrderLocationForm form) {
+        String orderKey = RedisConstant.UPDATE_ORDER_LOCATION + form.getOrderId();
+        stringRedisTemplate.execute(
+                new DefaultRedisScript<>(UPDATE_ORDER_LOCATION_SCRIPT, Long.class),
+                Collections.singletonList(orderKey),
+                form.getLongitude().toString(),
+                form.getLatitude().toString(),
+                "600" // 10分钟=600秒
+        );
         return Boolean.TRUE;
     }
+
+    // @Override
+    // public Boolean updateOrderLocationToCache(UpdateOrderLocationForm updateOrderLocationForm) {
+    //
+    //     String orderKey = RedisConstant.UPDATE_ORDER_LOCATION + updateOrderLocationForm.getOrderId();
+    //     // 1. 转为 Map
+    //     Map<String, String> map = new HashMap<>();
+    //     map.put("longitude", updateOrderLocationForm.getLongitude().toString());
+    //     map.put("latitude", updateOrderLocationForm.getLatitude().toString());
+    //     stringRedisTemplate.opsForHash().putAll(orderKey, map);
+    //     stringRedisTemplate.expire(orderKey, DriverConstant.ACCEPT_DISTANCE, TimeUnit.MINUTES);
+    //     return Boolean.TRUE;
+    // }
 
     @Override
     public OrderLocationVo getCacheOrderLocation(Long orderId) {

@@ -23,7 +23,7 @@ public class MonitorController {
     @Resource
     private MonitorService monitorService;
 
-    @Operation(summary = "上传录音")
+    @Operation(summary = "微信同声传译上传录音")
     @PostMapping("/upload")
     @KjyLogin
     public Result<Boolean> upload(@RequestParam("file") MultipartFile file,

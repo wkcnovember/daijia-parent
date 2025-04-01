@@ -1,29 +1,51 @@
 package com.atguigu.daijia.driver.service.impl;
 
+import com.alibaba.fastjson2.JSON;
+import com.atguigu.daijia.common.constant.DriverConstant;
 import com.atguigu.daijia.common.execption.GuiguException;
 import com.atguigu.daijia.common.result.Result;
 import com.atguigu.daijia.common.result.ResultCodeEnum;
 import com.atguigu.daijia.common.util.AuthContextHolder;
+import com.atguigu.daijia.common.util.LocationUtil;
 import com.atguigu.daijia.customer.client.CustomerInfoFeignClient;
 import com.atguigu.daijia.dispatch.client.NewOrderFeignClient;
-import com.atguigu.daijia.driver.client.DriverInfoFeignClient;
 import com.atguigu.daijia.driver.service.OrderService;
+import com.atguigu.daijia.map.client.LocationFeignClient;
 import com.atguigu.daijia.map.client.MapFeignClient;
 import com.atguigu.daijia.model.convert.order.OrderInfoConvert;
 import com.atguigu.daijia.model.entity.order.OrderInfo;
 import com.atguigu.daijia.model.form.map.CalculateDrivingLineForm;
+import com.atguigu.daijia.model.form.order.OrderFeeForm;
 import com.atguigu.daijia.model.form.order.StartDriveForm;
+import com.atguigu.daijia.model.form.order.UpdateOrderBillForm;
 import com.atguigu.daijia.model.form.order.UpdateOrderCartForm;
+import com.atguigu.daijia.model.form.rules.FeeRuleRequestForm;
+import com.atguigu.daijia.model.form.rules.ProfitsharingRuleRequestForm;
+import com.atguigu.daijia.model.form.rules.RewardRuleRequestForm;
+import com.atguigu.daijia.model.query.order.OrderCount;
+import com.atguigu.daijia.model.vo.base.PageVo;
 import com.atguigu.daijia.model.vo.customer.CustomerInfoVo;
 import com.atguigu.daijia.model.vo.map.DrivingLineVo;
+import com.atguigu.daijia.model.vo.map.OrderLocationVo;
+import com.atguigu.daijia.model.vo.map.OrderServiceLastLocationVo;
 import com.atguigu.daijia.model.vo.order.CurrentOrderInfoVo;
 import com.atguigu.daijia.model.vo.order.NewOrderDataVo;
 import com.atguigu.daijia.model.vo.order.OrderInfoVo;
+import com.atguigu.daijia.model.vo.order.OrderListVo;
+import com.atguigu.daijia.model.vo.rules.FeeRuleResponseVo;
+import com.atguigu.daijia.model.vo.rules.ProfitsharingRuleResponseVo;
+import com.atguigu.daijia.model.vo.rules.RewardRuleResponseVo;
 import com.atguigu.daijia.order.client.OrderInfoFeignClient;
+import com.atguigu.daijia.rules.client.FeeRuleFeignClient;
+import com.atguigu.daijia.rules.client.ProfitsharingRuleFeignClient;
+import com.atguigu.daijia.rules.client.RewardRuleFeignClient;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 
@@ -43,15 +65,25 @@ public class OrderServiceImpl implements OrderService {
     @Resource
     private MapFeignClient mapFeignClient;
 
+
     @Resource
-    private  DriverInfoFeignClient driverInfoFeignClient;
+    private LocationFeignClient locationFeignClient;
+
+    @Resource
+    private FeeRuleFeignClient feeRuleFeignClient;
+
+    @Resource
+    private RewardRuleFeignClient rewardRuleFeignClient;
+
+    @Resource
+    private ProfitsharingRuleFeignClient profitsharingRuleFeignClient;
 
 
     @Override
     public Integer getOrderStatus(Long orderId) {
         Result<Boolean> result = orderInfoFeignClient.isDriverOrder(AuthContextHolder.getUserId(), orderId);
         result.throwOnFailureOrDataIsNull();
-        if(Boolean.FALSE.equals(result.getData())) {
+        if (Boolean.FALSE.equals(result.getData())) {
             throw new GuiguException(ResultCodeEnum.ILLEGAL_REQUEST);
         }
         Result<Integer> orderStatus = orderInfoFeignClient.getOrderStatus(orderId);
@@ -94,6 +126,7 @@ public class OrderServiceImpl implements OrderService {
                 customerInfoFeignClient.getCustomerInfoVo(orderInfo.getCustomerId());
         customerInfoVoResult.throwOnFailureOrDataIsNull();
         orderInfoVo.setCustomerInfoVo(customerInfoVoResult.getData());
+        // todo 收账信息
         return orderInfoVo;
     }
 
@@ -108,9 +141,23 @@ public class OrderServiceImpl implements OrderService {
     public Boolean driverArriveStartLocation(Long orderId, Long driverId) {
         Result<Boolean> isValidate = orderInfoFeignClient.isDriverOrder(driverId, orderId);
         isValidate.throwOnFailureOrDataIsNull();
-        if(Boolean.FALSE.equals(isValidate.getData())) {
+        if (Boolean.FALSE.equals(isValidate.getData())) {
             throw new GuiguException(ResultCodeEnum.ILLEGAL_REQUEST);
         }
+        // 防止刷单，计算司机的经纬度与代驾的起始经纬度是否在1公里范围内
+        OrderInfo orderInfo = orderInfoFeignClient.getOrderInfo(orderId).getData();
+        Result<OrderLocationVo> cacheOrderLocationRes = locationFeignClient.getCacheOrderLocation(orderId);
+        cacheOrderLocationRes.throwOnFailureOrDataIsNull();
+        OrderLocationVo orderLocationVo = cacheOrderLocationRes.getData();
+        // 司机的位置与代驾起始点位置的距离
+        double distance = LocationUtil.getDistance(orderInfo.getStartPointLatitude().doubleValue(),
+                orderInfo.getStartPointLongitude().doubleValue(),
+                orderLocationVo.getLatitude().doubleValue(),
+                orderLocationVo.getLongitude().doubleValue());
+        if (distance > DriverConstant.DRIVER_START_LOCATION_DISTION) {
+            throw new GuiguException(ResultCodeEnum.DRIVER_START_LOCATION_DISTION_ERROR);
+        }
+
         Result<Boolean> result = orderInfoFeignClient.driverArriveStartLocation(orderId, driverId);
         result.throwOnFailureOrDataIsNull();
         return result.getData();
@@ -122,7 +169,7 @@ public class OrderServiceImpl implements OrderService {
         Long driverId = updateOrderCartForm.getDriverId();
         Result<Boolean> isValidate = orderInfoFeignClient.isDriverOrder(driverId, orderId);
         isValidate.throwOnFailureOrDataIsNull();
-        if(Boolean.FALSE.equals(isValidate.getData())) {
+        if (Boolean.FALSE.equals(isValidate.getData())) {
             throw new GuiguException(ResultCodeEnum.ILLEGAL_REQUEST);
         }
         Result<Boolean> result = orderInfoFeignClient.updateOrderCart(updateOrderCartForm);
@@ -136,12 +183,140 @@ public class OrderServiceImpl implements OrderService {
         Long driverId = startDriveForm.getDriverId();
         Result<Boolean> isValidate = orderInfoFeignClient.isDriverOrder(driverId, orderId);
         isValidate.throwOnFailureOrDataIsNull();
-        if(Boolean.FALSE.equals(isValidate.getData())) {
+        if (Boolean.FALSE.equals(isValidate.getData())) {
             throw new GuiguException(ResultCodeEnum.ILLEGAL_REQUEST);
         }
         Result<Boolean> startDrive = orderInfoFeignClient.startDrive(startDriveForm);
         startDrive.throwOnFailureOrDataIsNull();
         return startDrive.getData();
+    }
+
+    @Override
+    public Boolean endDrive(OrderFeeForm orderFeeForm) {
+        // 1.校验订单合法性
+        // 1.1
+        Long orderId = orderFeeForm.getOrderId();
+        Long driverId = orderFeeForm.getDriverId();
+        Result<Boolean> isDriverOrderRes = orderInfoFeignClient.isDriverOrder(driverId,
+                orderId);
+        isDriverOrderRes.throwOnFailureOrDataIsNull();
+        if (Boolean.FALSE.equals(isDriverOrderRes.getData())) {
+            throw new GuiguException(ResultCodeEnum.ILLEGAL_REQUEST);
+        }
+
+
+        Result<OrderInfo> orderInfoRes = orderInfoFeignClient.getOrderInfo(orderId);
+        orderInfoRes.throwOnFailureOrDataIsNull();
+        OrderInfo orderInfo = orderInfoRes.getData();
+
+        // 1.2 防刷单
+        Result<OrderServiceLastLocationVo> orderServiceLastLocationRes =
+                locationFeignClient.getOrderServiceLastLocation(orderId);
+        orderServiceLastLocationRes.throwOnFailureOrDataIsNull();
+        // 2.防止刷单，计算司机的经纬度与代驾的终点经纬度是否在2公里范围内
+        OrderServiceLastLocationVo orderServiceLastLocationVo = orderServiceLastLocationRes.getData();
+        // 司机的位置与代驾终点位置的距离
+        double distance = LocationUtil.getDistance(orderInfo.getEndPointLatitude().doubleValue(),
+                orderInfo.getEndPointLongitude().doubleValue(),
+                orderServiceLastLocationVo.getLatitude().doubleValue(),
+                orderServiceLastLocationVo.getLongitude().doubleValue());
+        if (distance > DriverConstant.DRIVER_END_LOCATION_DISTION) {
+            throw new GuiguException(ResultCodeEnum.DRIVER_END_LOCATION_DISTION_ERROR);
+        }
+
+        // 2.计算真实距离
+        Result<BigDecimal> orderRealDistance = locationFeignClient.calculateOrderRealDistance(orderId);
+        orderRealDistance.throwOnFailureOrDataIsNull();
+        BigDecimal realDistance = orderRealDistance.getData();
+        log.info("结束代驾，订单实际里程：{}", realDistance);
+
+        // 3.计算真实价格
+        FeeRuleRequestForm feeRuleRequestForm = new FeeRuleRequestForm();
+        feeRuleRequestForm.setDistance(realDistance);
+        feeRuleRequestForm.setStartTime(orderInfo.getStartServiceTime());
+        // todo 等待时间优化~
+        feeRuleRequestForm.setWaitMinute(0);
+        Result<FeeRuleResponseVo> feeRuleResponseVoResult = feeRuleFeignClient.calculateOrderFee(feeRuleRequestForm);
+        feeRuleResponseVoResult.throwOnFailureOrDataIsNull();
+        FeeRuleResponseVo feeRuleResponseVo = feeRuleResponseVoResult.getData();
+        log.info("订单={}真实价格={}", orderId, JSON.toJSONString(feeRuleResponseVo));
+        // 实际费用 = 代驾费用 + 其他费用（停车费）
+        BigDecimal totalAmount =
+                feeRuleResponseVo.getTotalAmount().add(orderFeeForm.getTollFee())
+                        .add(orderFeeForm.getParkingFee())
+                        .add(orderFeeForm.getOtherFee())
+                        .add(orderInfo.getFavourFee());
+        feeRuleResponseVo.setTotalAmount(totalAmount);
+
+        log.info("订单={}实际费用={}", orderId, totalAmount);
+
+        // 4 计算系统奖励
+        // 4.1 获取当日开始接单数量
+        OrderCount orderCount = new OrderCount();
+        orderCount.setDriverId(driverId);
+        LocalDateTime startTime = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0);
+        LocalDateTime endTime = LocalDateTime.now().withHour(23).withMinute(59).withSecond(59);
+        orderCount.setStartServiceTime(startTime);
+        orderCount.setEndServiceTime(endTime);
+        Result<Long> orderNumByTimeRes = orderInfoFeignClient.getOrderNumByTime(orderCount);
+        orderNumByTimeRes.throwOnFailureOrDataIsNull();
+        Long orderCounts = orderNumByTimeRes.getData();
+        log.info("当日接单数量={}", orderCounts);
+
+        // 4.2 计算奖励信息
+        RewardRuleRequestForm rewardRuleRequestForm = new RewardRuleRequestForm();
+        rewardRuleRequestForm.setStartTime(orderInfo.getStartServiceTime());
+        rewardRuleRequestForm.setOrderNum(orderCounts);
+        Result<RewardRuleResponseVo> rewardRuleResponseVoResult =
+                rewardRuleFeignClient.calculateOrderRewardFee(rewardRuleRequestForm);
+        rewardRuleResponseVoResult.throwOnFailureOrDataIsNull();
+        RewardRuleResponseVo rewardRuleResponseVo = rewardRuleResponseVoResult.getData();
+        log.info("当日每单奖励={}", JSON.toJSONString(rewardRuleResponseVo));
+
+        // 5 计算分账信息
+        ProfitsharingRuleRequestForm profitsharingRuleRequestForm = new ProfitsharingRuleRequestForm();
+        profitsharingRuleRequestForm.setOrderAmount(feeRuleResponseVo.getTotalAmount());
+        profitsharingRuleRequestForm.setOrderNum(orderNumByTimeRes.getData());
+        Result<ProfitsharingRuleResponseVo> profitsharingRuleResponseVoResult =
+                profitsharingRuleFeignClient.calculateOrderProfitsharingFee(profitsharingRuleRequestForm);
+
+        profitsharingRuleResponseVoResult.throwOnFailureOrDataIsNull();
+        ProfitsharingRuleResponseVo profitsharingRuleResponseVo = profitsharingRuleResponseVoResult.getData();
+        log.info("订单={}的分账信息={}", orderId, JSON.toJSONString(profitsharingRuleResponseVo));
+
+        // 6 封装实体类，结束代驾更新订单，添加账单和分账信息
+        UpdateOrderBillForm updateOrderBillForm = new UpdateOrderBillForm();
+        updateOrderBillForm.setOrderId(orderFeeForm.getOrderId());
+        updateOrderBillForm.setDriverId(orderFeeForm.getDriverId());
+        // 路桥费、停车费、其他费用
+        updateOrderBillForm.setTollFee(orderFeeForm.getTollFee());
+        updateOrderBillForm.setParkingFee(orderFeeForm.getParkingFee());
+        updateOrderBillForm.setOtherFee(orderFeeForm.getOtherFee());
+        // 乘客好处费
+        updateOrderBillForm.setFavourFee(orderInfo.getFavourFee());
+
+        // 实际里程
+        updateOrderBillForm.setRealDistance(realDistance);
+        // 订单奖励信息
+        updateOrderBillForm.setRewardRuleId(rewardRuleResponseVo.getRewardRuleId());
+        updateOrderBillForm.setRewardAmount(rewardRuleResponseVo.getRewardAmount());
+        // 代驾费用信息
+        BeanUtils.copyProperties(feeRuleResponseVo, updateOrderBillForm);
+        // 分账相关信息
+        BeanUtils.copyProperties(profitsharingRuleResponseVo, updateOrderBillForm);
+        updateOrderBillForm.setProfitsharingRuleId(profitsharingRuleResponseVo.getProfitsharingRuleId());
+        Result<Boolean> result = orderInfoFeignClient.endDrive(updateOrderBillForm);
+        result.throwOnFailureOrDataIsNull();
+
+        return result.getData();
+    }
+
+
+    @Override
+    public PageVo<OrderListVo> findDriverOrderPage(Long driverId, Long page, Long limit) {
+        Result<PageVo<OrderListVo>> driverOrderPage = orderInfoFeignClient.findDriverOrderPage(driverId, page, limit);
+        driverOrderPage.throwOnFailureOrDataIsNull();
+        return driverOrderPage.getData();
     }
 
 

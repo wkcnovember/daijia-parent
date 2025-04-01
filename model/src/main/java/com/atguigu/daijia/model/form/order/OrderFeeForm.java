@@ -2,6 +2,8 @@ package com.atguigu.daijia.model.form.order;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -11,6 +13,8 @@ import java.math.BigDecimal;
 public class OrderFeeForm {
 
     @Schema(description = "订单ID")
+    @NotNull
+    @Positive
 	private Long orderId;
 
     @Schema(description = "司机ID")

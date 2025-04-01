@@ -6,20 +6,27 @@ import com.atguigu.daijia.common.execption.GuiguException;
 import com.atguigu.daijia.common.result.ResultCodeEnum;
 import com.atguigu.daijia.model.convert.order.OrderInfoConvert;
 import com.atguigu.daijia.model.entity.base.BaseEntity;
-import com.atguigu.daijia.model.entity.order.OrderInfo;
-import com.atguigu.daijia.model.entity.order.OrderMonitor;
-import com.atguigu.daijia.model.entity.order.OrderStatusLog;
-import com.atguigu.daijia.model.enums.OrderStatus;
+import com.atguigu.daijia.model.entity.order.*;
+import com.atguigu.daijia.model.enums.order.OrderStatus;
+import com.atguigu.daijia.model.enums.order.ProfitSharingStatus;
 import com.atguigu.daijia.model.form.order.OrderInfoForm;
 import com.atguigu.daijia.model.form.order.StartDriveForm;
+import com.atguigu.daijia.model.form.order.UpdateOrderBillForm;
 import com.atguigu.daijia.model.form.order.UpdateOrderCartForm;
+import com.atguigu.daijia.model.query.order.OrderCount;
 import com.atguigu.daijia.model.redis.DcId;
+import com.atguigu.daijia.model.vo.base.PageVo;
 import com.atguigu.daijia.model.vo.order.CurrentOrderInfoVo;
+import com.atguigu.daijia.model.vo.order.OrderListVo;
+import com.atguigu.daijia.order.mapper.OrderBillMapper;
 import com.atguigu.daijia.order.mapper.OrderInfoMapper;
+import com.atguigu.daijia.order.mapper.OrderProfitsharingMapper;
 import com.atguigu.daijia.order.mapper.OrderStatusLogMapper;
 import com.atguigu.daijia.order.service.OrderInfoService;
 import com.atguigu.daijia.order.service.OrderMonitorService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -32,7 +39,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
+import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import static com.atguigu.daijia.common.constant.RedisConstant.ORDER_DRIVER_CUSTOMER_HASH;
@@ -60,6 +70,18 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
 
     @Resource
     private OrderMonitorService orderMonitorService;
+
+    @Resource
+    private OrderBillMapper orderBillMapper;
+
+    @Resource
+    private ThreadPoolExecutor sharedThreadPool;
+
+
+    @Resource
+    private OrderProfitsharingMapper orderProfitsharingMapper;
+
+
 
     @Override
     @Transactional
@@ -148,19 +170,20 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
             if (orderInfo == null) {
                 // 清楚脏数据
                 delOrderZsetAndHash(driverId, orderId);
-                log.warn("此订单不存在~");
+                log.warn("此订单不存在或已经被抢~");
                 throw new GuiguException(ResultCodeEnum.NOT_EXISTS_ORDER);
 
             }
             // 订单不在接单状态 删除redis对应的order缓存
-            if (!Objects.equals(OrderStatus.WAITING_ACCEPT.getStatus(), orderInfo.getStatus())) {
-                log.warn("此订单处于非等待状态~");
-                // 清楚脏数据
-                delOrderZsetAndHash(driverId, orderId);
-            }
+            // if (!Objects.equals(OrderStatus.WAITING_ACCEPT.getStatus(), orderInfo.getStatus())) {
+            //     log.warn("此订单处于非等待状态~");
+            //     // 清楚脏数据
+            //     delOrderZsetAndHash(driverId, orderId);
+            //     throw new GuiguException(ResultCodeEnum.NOT_EXISTS_ORDER);
+            // }
             // 修改订单信息
             orderInfo.setDriverId(driverId);
-            orderInfo.setAcceptTime(new Date());
+            orderInfo.setAcceptTime(LocalDateTime.now());
             orderInfo.setStatus(OrderStatus.ACCEPTED.getStatus());
             boolean isSuccess = updateById(orderInfo);
             if (!isSuccess) {
@@ -177,7 +200,7 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
             );
 
 
-            // 删除订单标识位
+            // 删除订单标识位(抢单后,会被主动删除)
             // delOrderZsetAndHash(driverId, orderId);
 
 
@@ -230,7 +253,7 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
                 .eq(OrderInfo::getDriverId, driverId);
         OrderInfo updateOrderInfo = new OrderInfo();
         updateOrderInfo.setStatus(OrderStatus.DRIVER_ARRIVED.getStatus());
-        updateOrderInfo.setArriveTime(new Date());
+        updateOrderInfo.setArriveTime(LocalDateTime.now());
         // 只能更新自己的订单
         int row = baseMapper.update(updateOrderInfo, queryWrapper);
         if (row == 1) {
@@ -266,9 +289,13 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
     @Override
     public Boolean isDriverCurrentOrder(Long driverId, Long orderId) {
         Boolean isFlag = isCurrentOrder(false, driverId, orderId);
+
         if (Boolean.TRUE.equals(isFlag)) {
-            stringRedisTemplate.expire(ORDER_DRIVER_CUSTOMER_HASH + orderId, ORDER_DRIVER_CUSTOMER_TIMEOUT,
-                    TimeUnit.MINUTES);
+            CompletableFuture.runAsync(() -> {
+                stringRedisTemplate.expire(ORDER_DRIVER_CUSTOMER_HASH + orderId, ORDER_DRIVER_CUSTOMER_TIMEOUT,
+                        TimeUnit.MINUTES);
+            }, sharedThreadPool);
+
         }
         return isFlag;
     }
@@ -282,7 +309,7 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
 
         OrderInfo updateOrderInfo = new OrderInfo();
         updateOrderInfo.setStatus(OrderStatus.START_SERVICE.getStatus());
-        updateOrderInfo.setStartServiceTime(new Date());
+        updateOrderInfo.setStartServiceTime(LocalDateTime.now());
         // 只能更新自己的订单
         int row = baseMapper.update(updateOrderInfo, queryWrapper);
         if (row == 1) {
@@ -291,7 +318,7 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
         } else {
             throw new GuiguException(ResultCodeEnum.UPDATE_ERROR);
         }
-        //初始化订单监控统计数据
+        // 初始化订单监控统计数据
         OrderMonitor orderMonitor = new OrderMonitor();
         orderMonitor.setOrderId(startDriveForm.getOrderId());
         orderMonitorService.saveOrderMonitor(orderMonitor);
@@ -299,11 +326,79 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
     }
 
     @Override
+    public Long getOrderNumByTime(OrderCount orderCount) {
+        LambdaQueryWrapper<OrderInfo> wrapper = new LambdaQueryWrapper<>();
+        wrapper
+                .eq(OrderInfo::getDriverId, orderCount.getDriverId())
+                .between(OrderInfo::getStartServiceTime, orderCount.getStartServiceTime(),
+                        orderCount.getEndServiceTime());
+        Long count = baseMapper.selectCount(wrapper);
+        return count;
+    }
+
+    @Override
+    @Transactional
+    public Boolean endDrive(UpdateOrderBillForm updateOrderBillForm) {
+        // 1 更新订单信息
+        // update order_info set ..... where id=? and driver_id=?
+        LambdaQueryWrapper<OrderInfo> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(OrderInfo::getId, updateOrderBillForm.getOrderId());
+        wrapper.eq(OrderInfo::getDriverId, updateOrderBillForm.getDriverId());
+
+        OrderInfo orderInfo = new OrderInfo();
+        orderInfo.setStatus(OrderStatus.END_SERVICE.getStatus());
+        orderInfo.setRealAmount(updateOrderBillForm.getTotalAmount());
+        orderInfo.setFavourFee(updateOrderBillForm.getFavourFee());
+        orderInfo.setRealDistance(updateOrderBillForm.getRealDistance());
+        orderInfo.setEndServiceTime(LocalDateTime.now());
+        int rows = baseMapper.update(orderInfo, wrapper);
+
+        if (rows != 1) {
+            throw new GuiguException(ResultCodeEnum.UPDATE_ERROR);
+        }
+        OrderBill orderBill = orderInfoConvert.toOrderBill(updateOrderBillForm);
+        orderBill.setRewardRuleId(updateOrderBillForm.getRewardRuleId());
+        // 添加账单数据
+        rows = orderBillMapper.insert(orderBill);
+        if (rows != 1) {
+            throw new GuiguException(ResultCodeEnum.UPDATE_ERROR);
+        }
+
+        // 添加分账信息
+        OrderProfitsharing orderProfitsharing = orderInfoConvert.toOrderProfitsharing(updateOrderBillForm);
+        orderProfitsharing.setRuleId(updateOrderBillForm.getProfitsharingRuleId());
+        orderProfitsharing.setStatus(ProfitSharingStatus.OFF.getStatus());
+        rows = orderProfitsharingMapper.insert(orderProfitsharing);
+        if (rows != 1) {
+            throw new GuiguException(ResultCodeEnum.UPDATE_ERROR);
+        }
+
+        return Boolean.TRUE;
+    }
+
+    @Override
+    public PageVo<OrderListVo> findCustomerOrderPage(Page<OrderInfo> pageParam, Long customerId) {
+        // 状态 < 已付款 预估金额  >=  实际总付款bill
+        IPage<OrderListVo> orderInfoPageVo = baseMapper.selectCustomerOrderPage(pageParam, customerId);
+        return PageVo.toPageVo(orderInfoPageVo);
+    }
+
+    @Override
+    public PageVo<OrderListVo> findDriverOrderPage(Page<OrderInfo> pageParam, Long driverId) {
+        // 状态 < 已付款 预估金额  >=  实际总付款bill
+        IPage<OrderListVo> orderInfoPageVo = baseMapper.selectDriverOrderPage(pageParam, driverId);
+        return PageVo.toPageVo(orderInfoPageVo);
+    }
+
+    @Override
     public Boolean isCustomerCurrentOrder(Long customerId, Long orderId) {
         Boolean currentOrder = isCurrentOrder(true, customerId, orderId);
         if (Boolean.TRUE.equals(currentOrder)) {
-            stringRedisTemplate.expire(ORDER_DRIVER_CUSTOMER_HASH + orderId, ORDER_DRIVER_CUSTOMER_TIMEOUT,
-                    TimeUnit.MINUTES);
+            CompletableFuture.runAsync(() -> {
+                stringRedisTemplate.expire(ORDER_DRIVER_CUSTOMER_HASH + orderId, ORDER_DRIVER_CUSTOMER_TIMEOUT,
+                        TimeUnit.MINUTES);
+            }, sharedThreadPool);
+
         }
         return currentOrder;
     }
@@ -318,10 +413,10 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
         String jsonString = JSON.toJSONString(entries);
         DcId dcId = JSON.parseObject(jsonString, DcId.class);
         if (isCustomer) {
-            return Objects.equals(dcId.getCustomerId(),id);
+            return Objects.equals(dcId.getCustomerId(), id);
         }
 
-        return Objects.equals(dcId.getDriverId(),id);
+        return Objects.equals(dcId.getDriverId(), id);
 
     }
 

@@ -12,7 +12,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -91,7 +90,7 @@ public class DriverController {
         Long driverId = AuthContextHolder.getUserId();
         return Result.ok(driverService.startService(driverId));
     }
-    @Operation(summary = "停止接单服务")
+    @Operation(summary = "停止接单服务(1=0)")
     @KjyLogin
     @GetMapping("/stopService")
     public Result<Boolean> stopService() {

@@ -12,6 +12,8 @@ public class DroolsHelper {
 
     public static final String REWARDRULE_DRL = "rules/RewardRule.drl";
 
+    public static final String PROFITSHARINGRULE_DRL = "rules/ProfitsharingRule.drl";
+
     public static KieSession loadForRule(String drlStr) {
         KieServices kieServices = KieServices.Factory.get();
 

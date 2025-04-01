@@ -1,4 +1,4 @@
-package com.atguigu.daijia.model.enums;
+package com.atguigu.daijia.model.enums.order;
 
 import lombok.Getter;
 

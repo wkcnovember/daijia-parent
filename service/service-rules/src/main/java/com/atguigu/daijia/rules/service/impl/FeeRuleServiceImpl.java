@@ -1,7 +1,7 @@
 package com.atguigu.daijia.rules.service.impl;
 
 import com.alibaba.fastjson2.JSON;
-import com.atguigu.daijia.model.convert.rule.FeeRuleResponseConvert;
+import com.atguigu.daijia.model.convert.rule.RuleResponseConvert;
 import com.atguigu.daijia.model.form.rules.FeeRuleRequest;
 import com.atguigu.daijia.model.form.rules.FeeRuleRequestForm;
 import com.atguigu.daijia.model.vo.rules.FeeRuleResponse;
@@ -23,7 +23,7 @@ public class FeeRuleServiceImpl implements FeeRuleService {
     private KieContainer kieContainer;
 
     @Resource
-    private FeeRuleResponseConvert feeRuleResponseConvert;
+    private RuleResponseConvert feeRuleResponseConvert;
 
 
     public static void main(String[] args) {

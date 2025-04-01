@@ -71,7 +71,7 @@ public class CiServiceImpl implements CiService {
             String result = detail.getResult();
 
             // 违规关键词
-            StringBuffer keywords = new StringBuffer();
+            StringBuilder keywords = new StringBuilder();
             List<SectionInfo> sectionInfoList = detail.getSectionList();
             for (SectionInfo info : sectionInfoList) {
                 String pornInfoKeyword = info.getPornInfo().getKeywords();

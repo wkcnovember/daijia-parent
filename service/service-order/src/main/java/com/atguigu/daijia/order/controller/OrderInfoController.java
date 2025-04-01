@@ -4,11 +4,17 @@ import com.atguigu.daijia.common.result.Result;
 import com.atguigu.daijia.model.entity.order.OrderInfo;
 import com.atguigu.daijia.model.form.order.OrderInfoForm;
 import com.atguigu.daijia.model.form.order.StartDriveForm;
+import com.atguigu.daijia.model.form.order.UpdateOrderBillForm;
 import com.atguigu.daijia.model.form.order.UpdateOrderCartForm;
+import com.atguigu.daijia.model.query.order.OrderCount;
 import com.atguigu.daijia.model.validate.group.ServiceGroup;
+import com.atguigu.daijia.model.vo.base.PageVo;
 import com.atguigu.daijia.model.vo.order.CurrentOrderInfoVo;
+import com.atguigu.daijia.model.vo.order.OrderListVo;
 import com.atguigu.daijia.order.service.OrderInfoService;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.validation.constraints.NotNull;
@@ -107,6 +113,44 @@ public class OrderInfoController {
     @PostMapping("/startDrive")
     public Result<Boolean> startDrive(@RequestBody @Validated({ServiceGroup.class, Default.class}) StartDriveForm startDriveForm) {
         return Result.ok(orderInfoService.startDrive(startDriveForm));
+    }
+
+    @Operation(summary = "根据时间段获取订单数")
+    @GetMapping("/getOrderNumByTime")
+    public Result<Long> getOrderNumByTime(@RequestBody @Validated OrderCount orderCount) {
+        return Result.ok(orderInfoService.getOrderNumByTime(orderCount));
+    }
+
+    @Operation(summary = "结束代驾服务更新订单账单")
+    @PostMapping("/endDrive")
+    public Result<Boolean> endDrive(@RequestBody @Validated UpdateOrderBillForm updateOrderBillForm) {
+        return Result.ok(orderInfoService.endDrive(updateOrderBillForm));
+    }
+
+    @Operation(summary = "获取乘客订单分页列表")
+    @GetMapping("/findCustomerOrderPage/{customerId}/{page}/{limit}")
+    public Result<PageVo<OrderListVo>> findCustomerOrderPage(@PathVariable("customerId") @NotNull @Positive Long customerId,
+                                                @PathVariable("page") @NotNull @Positive Long page,
+                                                @PathVariable("limit") @NotNull @Positive  Long limit) {
+        //创建page对象
+        Page<OrderInfo> pageParam = new Page<>(page,limit);
+        //调用service方法实现分页条件查询
+        PageVo<OrderListVo> pageVo = orderInfoService.findCustomerOrderPage(pageParam,customerId);
+        return Result.ok(pageVo);
+    }
+
+    @Operation(summary = "获取司机订单分页列表")
+    @GetMapping("/findDriverOrderPage/{driverId}/{page}/{limit}")
+    public Result<PageVo<OrderListVo>> findDriverOrderPage(
+            @Parameter(name = "driverId", description = "司机id", required = true)
+            @PathVariable("driverId") @NotNull @Positive Long driverId,
+            @Parameter(name = "page", description = "当前页码", required = true)
+            @PathVariable("page") @NotNull @Positive Long page,
+            @Parameter(name = "limit", description = "每页记录数", required = true)
+            @PathVariable("limit") @NotNull @Positive Long limit) {
+        Page<OrderInfo> pageParam = new Page<>(page, limit);
+        PageVo<OrderListVo> pageVo = orderInfoService.findDriverOrderPage(pageParam, driverId);
+        return Result.ok(pageVo);
     }
 
 

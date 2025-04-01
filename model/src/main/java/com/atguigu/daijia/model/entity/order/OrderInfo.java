@@ -7,7 +7,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 import java.math.BigDecimal;
-import java.util.Date;
+import java.time.LocalDateTime;
 
 @Data
 @Schema(description = "OrderInfo")
@@ -74,23 +74,23 @@ public class OrderInfo extends BaseEntity {
 
     @Schema(description = "司机接单时间")
 	@TableField("accept_time")
-	private Date acceptTime;
+	private LocalDateTime acceptTime;
 
     @Schema(description = "司机到达时间")
 	@TableField("arrive_time")
-	private Date arriveTime;
+	private LocalDateTime arriveTime;
 
     @Schema(description = "开始服务时间")
 	@TableField("start_service_time")
-	private Date startServiceTime;
+	private LocalDateTime startServiceTime;
 
     @Schema(description = "结束服务时间")
 	@TableField("end_service_time")
-	private Date endServiceTime;
+	private LocalDateTime endServiceTime;
 
     @Schema(description = "微信付款时间")
 	@TableField("pay_time")
-	private Date payTime;
+	private LocalDateTime payTime;
 
     @Schema(description = "订单取消规则ID")
 	@TableField("cancel_rule_id")

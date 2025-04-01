@@ -11,7 +11,7 @@ import com.atguigu.daijia.dispatch.xxl.client.XxlJobClient;
 import com.atguigu.daijia.map.client.LocationFeignClient;
 import com.atguigu.daijia.model.entity.base.BaseEntity;
 import com.atguigu.daijia.model.entity.dispatch.OrderJob;
-import com.atguigu.daijia.model.enums.OrderStatus;
+import com.atguigu.daijia.model.enums.order.OrderStatus;
 import com.atguigu.daijia.model.form.map.SearchNearByDriverForm;
 import com.atguigu.daijia.model.vo.dispatch.NewOrderTaskVo;
 import com.atguigu.daijia.model.vo.map.NearByDriverVo;

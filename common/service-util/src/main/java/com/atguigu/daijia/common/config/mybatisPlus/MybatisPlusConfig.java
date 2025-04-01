@@ -25,7 +25,9 @@ public class MybatisPlusConfig {
     public MybatisPlusInterceptor optimisticLockerInnerInterceptor(){
         MybatisPlusInterceptor interceptor = new MybatisPlusInterceptor();
         //向Mybatis过滤器链中添加分页拦截器
-        interceptor.addInnerInterceptor(new PaginationInnerInterceptor(DbType.MYSQL));
+        PaginationInnerInterceptor paginationInnerInterceptor = new PaginationInnerInterceptor(DbType.MYSQL);
+        paginationInnerInterceptor.setMaxLimit(10L);     // 单页最多 10 条
+        interceptor.addInnerInterceptor(paginationInnerInterceptor);
         return interceptor;
     }
 

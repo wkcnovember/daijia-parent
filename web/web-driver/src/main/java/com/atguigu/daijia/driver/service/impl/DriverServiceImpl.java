@@ -90,7 +90,7 @@ public class DriverServiceImpl implements DriverService {
     @Override
     public Boolean verifyDriverFace(DriverFaceModelForm driverFaceModelForm) {
         Result<Boolean> result = driverInfoFeignClient.verifyDriverFace(driverFaceModelForm);
-        result.throwOnFailure();
+        result.throwOnFailureOrDataIsNull();
         return result.getData();
     }
 

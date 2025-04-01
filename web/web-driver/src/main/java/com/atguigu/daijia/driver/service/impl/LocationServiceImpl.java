@@ -67,6 +67,7 @@ public class LocationServiceImpl implements LocationService {
         return updateOrderLocationToCache.getData();
     }
 
+    // todo 判断是否处于代驾状态才运行上传信息
     @Override
     public Boolean saveOrderServiceLocation(List<OrderServiceLocationForm> orderLocationServiceFormList) {
         Long orderId = orderLocationServiceFormList.get(0).getOrderId();

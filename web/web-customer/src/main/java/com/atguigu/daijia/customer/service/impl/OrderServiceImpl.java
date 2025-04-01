@@ -12,12 +12,13 @@ import com.atguigu.daijia.map.client.MapFeignClient;
 import com.atguigu.daijia.model.convert.map.CalculateDrivingLineConvert;
 import com.atguigu.daijia.model.convert.order.OrderInfoConvert;
 import com.atguigu.daijia.model.entity.order.OrderInfo;
-import com.atguigu.daijia.model.enums.OrderStatus;
+import com.atguigu.daijia.model.enums.order.OrderStatus;
 import com.atguigu.daijia.model.form.customer.ExpectOrderForm;
 import com.atguigu.daijia.model.form.customer.SubmitOrderForm;
 import com.atguigu.daijia.model.form.map.CalculateDrivingLineForm;
 import com.atguigu.daijia.model.form.order.OrderInfoForm;
 import com.atguigu.daijia.model.form.rules.FeeRuleRequestForm;
+import com.atguigu.daijia.model.vo.base.PageVo;
 import com.atguigu.daijia.model.vo.customer.ExpectOrderVo;
 import com.atguigu.daijia.model.vo.dispatch.NewOrderTaskVo;
 import com.atguigu.daijia.model.vo.driver.DriverInfoVo;
@@ -26,6 +27,7 @@ import com.atguigu.daijia.model.vo.map.OrderLocationVo;
 import com.atguigu.daijia.model.vo.map.OrderServiceLastLocationVo;
 import com.atguigu.daijia.model.vo.order.CurrentOrderInfoVo;
 import com.atguigu.daijia.model.vo.order.OrderInfoVo;
+import com.atguigu.daijia.model.vo.order.OrderListVo;
 import com.atguigu.daijia.model.vo.rules.FeeRuleResponseVo;
 import com.atguigu.daijia.order.client.OrderInfoFeignClient;
 import com.atguigu.daijia.rules.client.FeeRuleFeignClient;
@@ -34,7 +36,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.time.LocalTime;
+import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
@@ -87,7 +89,7 @@ public class OrderServiceImpl implements OrderService {
 
         FeeRuleRequestForm feeRuleRequestForm = new FeeRuleRequestForm();
         feeRuleRequestForm.setDistance(drivingLineVo.getDistance());
-        feeRuleRequestForm.setStartTime(LocalTime.now());
+        feeRuleRequestForm.setStartTime(LocalDateTime.now());
         feeRuleRequestForm.setWaitMinute(0);
         Result<FeeRuleResponseVo> feeRuleResponseVoResult = feeRuleFeignClient.calculateOrderFee(feeRuleRequestForm);
         feeRuleResponseVoResult.throwOnFailureOrDataIsNull();
@@ -112,7 +114,7 @@ public class OrderServiceImpl implements OrderService {
         FeeRuleRequestForm feeRuleRequestForm = new FeeRuleRequestForm();
         BigDecimal distance = drivingLineVo.getDistance();
         feeRuleRequestForm.setDistance(distance);
-        feeRuleRequestForm.setStartTime(LocalTime.now());
+        feeRuleRequestForm.setStartTime(LocalDateTime.now());
         feeRuleRequestForm.setWaitMinute(0);
         Result<FeeRuleResponseVo> feeRuleResponseVoResult = feeRuleFeignClient.calculateOrderFee(feeRuleRequestForm);
         feeRuleResponseVoResult.throwOnFailure();
@@ -247,5 +249,13 @@ public class OrderServiceImpl implements OrderService {
                 locationFeignClient.getOrderServiceLastLocation(orderId);
         orderServiceLastLocation.throwOnFailureOrDataIsNull();
         return orderServiceLastLocation.getData();
+    }
+
+    @Override
+    public PageVo<OrderListVo> findCustomerOrderPage(Long customerId, Long page, Long limit) {
+        Result<PageVo<OrderListVo>> customerOrderPage = orderInfoFeignClient.findCustomerOrderPage(customerId, page,
+                limit);
+        customerOrderPage.throwOnFailureOrDataIsNull();
+        return customerOrderPage.getData();
     }
 }

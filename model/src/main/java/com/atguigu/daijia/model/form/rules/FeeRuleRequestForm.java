@@ -6,8 +6,6 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.util.Date;
 
 @Data
 public class FeeRuleRequestForm {
@@ -18,7 +16,7 @@ public class FeeRuleRequestForm {
 
     @Schema(description = "代驾时间")
     @NotNull
-    private LocalTime startTime;
+    private LocalDateTime startTime;
 
     @Schema(description = "等候分钟")
     @NotNull

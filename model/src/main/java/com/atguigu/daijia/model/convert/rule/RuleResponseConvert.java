@@ -3,6 +3,8 @@ package com.atguigu.daijia.model.convert.rule;
 import com.atguigu.daijia.model.convert.GlobalMapperConfig;
 import com.atguigu.daijia.model.vo.rules.FeeRuleResponse;
 import com.atguigu.daijia.model.vo.rules.FeeRuleResponseVo;
+import com.atguigu.daijia.model.vo.rules.ProfitsharingRuleResponse;
+import com.atguigu.daijia.model.vo.rules.ProfitsharingRuleResponseVo;
 import org.mapstruct.Mapper;
 
 /**
@@ -12,6 +14,8 @@ import org.mapstruct.Mapper;
  * Description:
  */
 @Mapper(config = GlobalMapperConfig.class)
-public interface FeeRuleResponseConvert {
+public interface RuleResponseConvert {
     FeeRuleResponseVo toFeeRuleResponseVo(FeeRuleResponse ruleResponse);
+
+    ProfitsharingRuleResponseVo toProfitsharingRuleResponseVo(ProfitsharingRuleResponse profitsharingRuleResponse);
 }

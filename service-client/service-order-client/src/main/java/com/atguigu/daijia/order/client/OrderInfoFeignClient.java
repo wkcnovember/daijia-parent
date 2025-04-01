@@ -4,9 +4,14 @@ import com.atguigu.daijia.common.result.Result;
 import com.atguigu.daijia.model.entity.order.OrderInfo;
 import com.atguigu.daijia.model.form.order.OrderInfoForm;
 import com.atguigu.daijia.model.form.order.StartDriveForm;
+import com.atguigu.daijia.model.form.order.UpdateOrderBillForm;
 import com.atguigu.daijia.model.form.order.UpdateOrderCartForm;
+import com.atguigu.daijia.model.query.order.OrderCount;
+import com.atguigu.daijia.model.vo.base.PageVo;
 import com.atguigu.daijia.model.vo.order.CurrentOrderInfoVo;
+import com.atguigu.daijia.model.vo.order.OrderListVo;
 import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 
@@ -122,6 +127,54 @@ public interface OrderInfoFeignClient {
      */
     @PostMapping("/startDrive")
     Result<Boolean> startDrive(@RequestBody StartDriveForm startDriveForm);
+
+
+    /**
+     * 根据时间段获取订单数
+     *
+     * @param orderCount
+     * @return
+     */
+    @GetMapping("/getOrderNumByTime")
+    Result<Long> getOrderNumByTime(@RequestBody OrderCount orderCount);
+
+
+    /**
+     * 结束代驾服务更新订单账单
+     *
+     * @param updateOrderBillForm
+     * @return
+     */
+    @PostMapping("/endDrive")
+    Result<Boolean> endDrive(@RequestBody @Validated UpdateOrderBillForm updateOrderBillForm);
+
+
+    /**
+     * 获取乘客订单分页列表
+     *
+     * @param customerId
+     * @param page
+     * @param limit
+     * @return
+     */
+    @GetMapping("/findCustomerOrderPage/{customerId}/{page}/{limit}")
+    Result<PageVo<OrderListVo>> findCustomerOrderPage(@PathVariable("customerId") Long customerId,
+                                                      @PathVariable("page") Long page,
+                                                      @PathVariable("limit") Long limit);
+
+    /**
+     * 获取司机订单分页列表
+     *
+     * @param driverId
+     * @param page
+     * @param limit
+     * @return
+     */
+    @GetMapping("/findDriverOrderPage/{driverId}/{page}/{limit}")
+    Result<PageVo<OrderListVo>> findDriverOrderPage(
+            @PathVariable("driverId") Long driverId,
+            @PathVariable("page") Long page,
+            @PathVariable("limit") Long limit);
 
 
 }

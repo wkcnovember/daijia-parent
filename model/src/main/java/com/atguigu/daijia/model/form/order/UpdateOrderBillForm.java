@@ -1,6 +1,8 @@
 package com.atguigu.daijia.model.form.order;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -10,16 +12,23 @@ import java.math.BigDecimal;
 public class UpdateOrderBillForm {
 
     @Schema(description = "订单ID")
+    @NotNull
+    @Positive
 	private Long orderId;
 
     @Schema(description = "司机ID")
+    @NotNull
+    @Positive
     private Long driverId;
 
     @Schema(description = "实际里程")
+    @NotNull
+    @Positive
     private BigDecimal realDistance;
 
-    //其他费用：路桥费、停车费、其他费用、顾客好处费
+    // 其他费用：路桥费、停车费、其他费用、顾客好处费
     @Schema(description = "路桥费")
+    @NotNull
     private BigDecimal tollFee;
 
     @Schema(description = "停车费")

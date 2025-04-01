@@ -1,12 +1,15 @@
 package com.atguigu.daijia.driver.service;
 
 import com.atguigu.daijia.model.form.map.CalculateDrivingLineForm;
+import com.atguigu.daijia.model.form.order.OrderFeeForm;
 import com.atguigu.daijia.model.form.order.StartDriveForm;
 import com.atguigu.daijia.model.form.order.UpdateOrderCartForm;
+import com.atguigu.daijia.model.vo.base.PageVo;
 import com.atguigu.daijia.model.vo.map.DrivingLineVo;
 import com.atguigu.daijia.model.vo.order.CurrentOrderInfoVo;
 import com.atguigu.daijia.model.vo.order.NewOrderDataVo;
 import com.atguigu.daijia.model.vo.order.OrderInfoVo;
+import com.atguigu.daijia.model.vo.order.OrderListVo;
 
 import java.util.List;
 
@@ -31,4 +34,9 @@ public interface OrderService {
     Boolean updateOrderCart(UpdateOrderCartForm updateOrderCartForm);
 
     Boolean startDrive(StartDriveForm startDriveForm);
+
+    Boolean endDrive(OrderFeeForm orderFeeForm);
+
+
+    PageVo<OrderListVo> findDriverOrderPage(Long driverId, Long page, Long limit);
 }
