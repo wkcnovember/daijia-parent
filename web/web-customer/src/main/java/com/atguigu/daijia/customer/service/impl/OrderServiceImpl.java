@@ -26,6 +26,7 @@ import com.atguigu.daijia.model.vo.map.DrivingLineVo;
 import com.atguigu.daijia.model.vo.map.OrderLocationVo;
 import com.atguigu.daijia.model.vo.map.OrderServiceLastLocationVo;
 import com.atguigu.daijia.model.vo.order.CurrentOrderInfoVo;
+import com.atguigu.daijia.model.vo.order.OrderBillVo;
 import com.atguigu.daijia.model.vo.order.OrderInfoVo;
 import com.atguigu.daijia.model.vo.order.OrderListVo;
 import com.atguigu.daijia.model.vo.rules.FeeRuleResponseVo;
@@ -191,18 +192,32 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public OrderInfoVo getOrderInfo(Long orderId, Long customerId) {
-        Result<OrderInfo> orderInfoResult = orderInfoFeignClient.getOrderInfo(orderId);
-        orderInfoResult.throwOnFailureOrDataIsNull();
-        OrderInfo orderInfo = orderInfoResult.getData();
+        OrderInfo orderInfo = orderInfoFeignClient.getOrderInfo(orderId)
+                .throwOnFailureOrDataIsNull().getData();
         // 必须是自己的订单~
         if (!Objects.equals(orderInfo.getCustomerId(), customerId)) {
             throw new GuiguException(ResultCodeEnum.ILLEGAL_REQUEST);
         }
+
         OrderInfoVo orderInfoVo = orderInfoConvert.toOrderInfoVo(orderInfo);
         orderInfoVo.setOrderId(orderId);
-        Result<DriverInfoVo> driverInfoVoResult = driverInfoFeignClient.getDriverInfoVo(orderInfo.getDriverId());
-        driverInfoVoResult.throwOnFailureOrDataIsNull();
-        orderInfoVo.setDriverInfoVo(driverInfoVoResult.getData());
+
+        // 1.设置司机的基本信息
+        if (orderInfo.getDriverId() != null) {
+            DriverInfoVo driverInfoVo =
+                    driverInfoFeignClient.getDriverInfoVo(orderInfo.getDriverId())
+                            .throwOnFailureOrDataIsNull()
+                            .getData();
+            orderInfoVo.setDriverInfoVo(driverInfoVo);
+        }
+
+        // 2.账单的信息
+        if (orderInfo.getStatus() >= OrderStatus.UNPAID.getStatus()) {
+            OrderBillVo orderBillVo = orderInfoFeignClient.getOrderBillInfo(orderId).getData();
+            orderInfoVo.setOrderBillVo(orderBillVo);
+        }
+
+
         return orderInfoVo;
     }
 
@@ -227,8 +242,7 @@ public class OrderServiceImpl implements OrderService {
             throw new GuiguException(ResultCodeEnum.ILLEGAL_REQUEST);
         }
         Result<OrderLocationVo> cacheOrderLocation = locationFeignClient.getCacheOrderLocation(orderId);
-        cacheOrderLocation.throwOnFailureOrDataIsNull();
-        return cacheOrderLocation.getData();
+        return cacheOrderLocation.throwOnFailureOrDataIsNull().getData();
     }
 
     @Override
@@ -258,4 +272,6 @@ public class OrderServiceImpl implements OrderService {
         customerOrderPage.throwOnFailureOrDataIsNull();
         return customerOrderPage.getData();
     }
+
+
 }

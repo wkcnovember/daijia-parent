@@ -26,6 +26,17 @@ public class UpdateOrderBillForm {
     @Positive
     private BigDecimal realDistance;
 
+    @Schema(description = "里程费(基础里程+超出里程)")
+    private BigDecimal distanceFee;
+
+    @Schema(description = "等时费用")
+    private BigDecimal waitFee;
+
+
+    @Schema(description = "远程费")
+    private BigDecimal longDistanceFee;
+
+
     // 其他费用：路桥费、停车费、其他费用、顾客好处费
     @Schema(description = "路桥费")
     @NotNull

@@ -36,4 +36,6 @@ public interface OrderService {
     OrderServiceLastLocationVo getOrderServiceLastLocation(Long customerId, Long orderId);
 
     PageVo<OrderListVo> findCustomerOrderPage(Long customerId, Long page, Long limit);
+
+
 }

@@ -1,9 +1,7 @@
 package com.atguigu.daijia.driver.controller;
 
 import com.atguigu.daijia.common.result.Result;
-import com.atguigu.daijia.common.util.AuthContextHolder;
 import com.atguigu.daijia.driver.service.DriverInfoService;
-import com.atguigu.daijia.model.entity.driver.DriverSet;
 import com.atguigu.daijia.model.form.driver.DriverFaceModelForm;
 import com.atguigu.daijia.model.form.driver.UpdateDriverAuthInfoForm;
 import com.atguigu.daijia.model.validate.group.ServiceGroup;
@@ -14,15 +12,13 @@ import com.atguigu.daijia.model.vo.driver.DriverSetVo;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.groups.Default;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.validator.constraints.Range;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import jakarta.validation.groups.Default;
 
 import java.util.List;
 import java.util.Map;
@@ -111,6 +107,12 @@ public class DriverInfoController {
     public Result<DriverInfoVo> getDriverInfoVo(@PathVariable("driverId") @NotNull @Positive Long driverId) {
         DriverInfoVo driverInfo = driverInfoService.getDriverInfoVo(driverId);
         return Result.ok(driverInfo);
+    }
+
+    @Operation(summary = "获取司机OpenId")
+    @GetMapping("/getDriverOpenId/{driverId}")
+    public Result<String> getDriverOpenId(@PathVariable("driverId") @NotNull @Positive Long driverId) {
+        return Result.ok(driverInfoService.getDriverOpenId(driverId));
     }
 
 

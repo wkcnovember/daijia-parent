@@ -10,7 +10,6 @@ import com.atguigu.daijia.customer.mapper.CustomerLoginLogMapper;
 import com.atguigu.daijia.customer.service.CustomerInfoService;
 import com.atguigu.daijia.model.constants.login.LoginCannelConstants;
 import com.atguigu.daijia.model.convert.customer.CustomerInfoConvert;
-import com.atguigu.daijia.model.entity.base.BaseEntity;
 import com.atguigu.daijia.model.entity.customer.CustomerInfo;
 import com.atguigu.daijia.model.entity.customer.CustomerLoginLog;
 import com.atguigu.daijia.model.form.customer.UpdateWxPhoneForm;
@@ -23,8 +22,6 @@ import lombok.extern.slf4j.Slf4j;
 import me.chanjar.weixin.common.error.WxErrorException;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
-
-import java.util.Objects;
 
 @Slf4j
 @Service
@@ -115,5 +112,14 @@ public class CustomerInfoServiceImpl extends ServiceImpl<CustomerInfoMapper, Cus
     public CustomerInfoVo getCustomerInfoVo(Long customerId) {
         CustomerInfoVo customerInfoVo = baseMapper.getCustomerInfoVo(customerId);
         return customerInfoVo;
+    }
+
+    @Override
+    public String getCustomerOpenId(Long customerId) {
+        CustomerInfo customerInfo = this.getOne(
+                new LambdaQueryWrapper<CustomerInfo>()
+                        .eq(CustomerInfo::getId, customerId)
+                        .select(CustomerInfo::getWxOpenId));
+        return customerInfo == null ? null : customerInfo.getWxOpenId();
     }
 }

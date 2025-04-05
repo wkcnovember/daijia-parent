@@ -9,16 +9,14 @@ import com.atguigu.daijia.model.form.order.UpdateOrderCartForm;
 import com.atguigu.daijia.model.query.order.OrderCount;
 import com.atguigu.daijia.model.validate.group.ServiceGroup;
 import com.atguigu.daijia.model.vo.base.PageVo;
-import com.atguigu.daijia.model.vo.order.CurrentOrderInfoVo;
-import com.atguigu.daijia.model.vo.order.OrderBillVo;
-import com.atguigu.daijia.model.vo.order.OrderListVo;
-import com.atguigu.daijia.model.vo.order.OrderProfitsharingVo;
+import com.atguigu.daijia.model.vo.order.*;
 import com.atguigu.daijia.order.service.OrderInfoService;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.groups.Default;
@@ -164,6 +162,18 @@ public class OrderInfoController {
     @GetMapping("/getOrderProfitSharing/{orderId}")
     public Result<OrderProfitsharingVo> getOrderProfitSharing(@PathVariable("orderId") @NotNull @Positive  Long orderId) {
         return Result.ok(orderInfoService.getOrderProfitSharing(orderId));
+    }
+    @Operation(summary = "发送账单信息")
+    @GetMapping("/sendOrderBillInfo/{orderId}/{driverId}")
+    Result<Boolean> sendOrderBillInfo(@PathVariable("orderId")  @NotNull @Positive  Long orderId, @PathVariable("driverId")  @NotNull @Positive  Long driverId) {
+        return Result.ok(orderInfoService.sendOrderBillInfo(orderId, driverId));
+    }
+
+    @Operation(summary = "获取订单支付信息")
+    @GetMapping("/getOrderPayVo/{orderNo}/{customerId}")
+    public Result<OrderPayVo> getOrderPayVo(@PathVariable("orderNo") @NotBlank String orderNo,
+                                            @PathVariable("customerId") @NotNull @Positive Long customerId) {
+        return Result.ok(orderInfoService.getOrderPayVo(orderNo, customerId));
     }
 
 

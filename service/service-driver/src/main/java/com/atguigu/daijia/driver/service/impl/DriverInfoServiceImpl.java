@@ -420,6 +420,14 @@ public class DriverInfoServiceImpl extends ServiceImpl<DriverInfoMapper, DriverI
         return driverInfoVo;
     }
 
+    @Override
+    public String getDriverOpenId(Long driverId) {
+        DriverInfo driverInfo =
+                baseMapper.selectOne(new LambdaQueryWrapper<DriverInfo>()
+                        .select(DriverInfo::getWxOpenId).eq(BaseEntity::getId, driverId));
+        return driverInfo == null ? null : driverInfo.getWxOpenId();
+    }
+
     // 人脸静态活体检测
     private Boolean detectLiveFace(Long driverId, String imageBase64) {
         try {

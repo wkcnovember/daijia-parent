@@ -196,7 +196,17 @@ public interface OrderInfoFeignClient {
      * @return
      */
     @GetMapping("/getOrderProfitSharing/{orderId}")
-    public Result<OrderProfitsharingVo> getOrderProfitSharing(@PathVariable("orderId") Long orderId);
+    Result<OrderProfitsharingVo> getOrderProfitSharing(@PathVariable("orderId") Long orderId);
+
+    /**
+     * 发送账单信息
+     *
+     * @param orderId
+     * @param driverId
+     * @return
+     */
+    @GetMapping("/sendOrderBillInfo/{orderId}/{driverId}")
+    Result<Boolean> sendOrderBillInfo(@PathVariable("orderId") Long orderId, @PathVariable("driverId") Long driverId);
 
 
 }

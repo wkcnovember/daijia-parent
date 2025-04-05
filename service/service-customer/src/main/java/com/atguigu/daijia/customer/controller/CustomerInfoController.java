@@ -50,5 +50,10 @@ public class CustomerInfoController {
 		CustomerInfoVo customerLoginVo = customerInfoService.getCustomerInfoVo(customerId);
 		return Result.ok(customerLoginVo);
 	}
+	@Operation(summary = "获取客户OpenId")
+	@GetMapping("/getCustomerOpenId/{customerId}")
+	public Result<String> getCustomerOpenId(@PathVariable("customerId") @NotNull @Positive Long customerId) {
+		return Result.ok(customerInfoService.getCustomerOpenId(customerId));
+	}
 }
 

@@ -124,6 +124,14 @@ public class OrderController {
         return Result.ok(pageVo);
     }
 
+    @Operation(summary = "司机发送账单信息(更新为未支付)")
+    @KjyLogin
+    @GetMapping("/sendOrderBillInfo/{orderId}")
+    public Result<Boolean> sendOrderBillInfo(@PathVariable("orderId") @NotNull @Positive Long orderId) {
+        Long driverId = AuthContextHolder.getUserId();
+        return Result.ok(orderService.sendOrderBillInfo(orderId, driverId));
+    }
+
 
 
 
