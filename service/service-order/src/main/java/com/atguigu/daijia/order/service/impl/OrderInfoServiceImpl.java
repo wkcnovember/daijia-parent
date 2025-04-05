@@ -1,6 +1,5 @@
 package com.atguigu.daijia.order.service.impl;
 
-import com.alibaba.fastjson2.JSON;
 import com.atguigu.daijia.common.constant.RedisConstant;
 import com.atguigu.daijia.common.execption.GuiguException;
 import com.atguigu.daijia.common.result.ResultCodeEnum;
@@ -14,10 +13,11 @@ import com.atguigu.daijia.model.form.order.StartDriveForm;
 import com.atguigu.daijia.model.form.order.UpdateOrderBillForm;
 import com.atguigu.daijia.model.form.order.UpdateOrderCartForm;
 import com.atguigu.daijia.model.query.order.OrderCount;
-import com.atguigu.daijia.model.redis.DcId;
 import com.atguigu.daijia.model.vo.base.PageVo;
 import com.atguigu.daijia.model.vo.order.CurrentOrderInfoVo;
+import com.atguigu.daijia.model.vo.order.OrderBillVo;
 import com.atguigu.daijia.model.vo.order.OrderListVo;
+import com.atguigu.daijia.model.vo.order.OrderProfitsharingVo;
 import com.atguigu.daijia.order.mapper.OrderBillMapper;
 import com.atguigu.daijia.order.mapper.OrderInfoMapper;
 import com.atguigu.daijia.order.mapper.OrderProfitsharingMapper;
@@ -37,16 +37,13 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.CollectionUtils;
 
 import java.time.LocalDateTime;
-import java.util.*;
-import java.util.concurrent.CompletableFuture;
+import java.util.Collections;
+import java.util.Date;
+import java.util.UUID;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-
-import static com.atguigu.daijia.common.constant.RedisConstant.ORDER_DRIVER_CUSTOMER_HASH;
-import static com.atguigu.daijia.common.constant.RedisConstant.ORDER_DRIVER_CUSTOMER_TIMEOUT;
 
 @Service
 @Slf4j
@@ -82,7 +79,6 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
     private OrderProfitsharingMapper orderProfitsharingMapper;
 
 
-
     @Override
     @Transactional
     public Long saveOrderInfo(OrderInfoForm orderInfoForm) {
@@ -95,13 +91,13 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
         log(orderInfo.getId(), orderInfo.getStatus());
         Long orderId = orderInfo.getId();
         // 保存订单与乘客映射关系
-        stringRedisTemplate.execute(orderDcMapping, Collections.emptyList(),
-                orderId.toString(),
-                "",
-                orderInfo.getCustomerId().toString(),
-                String.valueOf(ORDER_DRIVER_CUSTOMER_TIMEOUT)
-
-        );
+        // stringRedisTemplate.execute(orderDcMapping, Collections.emptyList(),
+        //         orderId.toString(),
+        //         "",
+        //         orderInfo.getCustomerId().toString(),
+        //         String.valueOf(ORDER_DRIVER_CUSTOMER_TIMEOUT)
+        //
+        // );
 
 
         return orderId;
@@ -192,12 +188,12 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
             }
 
             // 添加 订单与司机和乘客的标示
-            stringRedisTemplate.execute(orderDcMapping, Collections.emptyList(),
-                    orderId.toString(),
-                    driverId.toString(),
-                    orderInfo.getCustomerId().toString(),
-                    String.valueOf(ORDER_DRIVER_CUSTOMER_TIMEOUT)
-            );
+            // stringRedisTemplate.execute(orderDcMapping, Collections.emptyList(),
+            //         orderId.toString(),
+            //         driverId.toString(),
+            //         orderInfo.getCustomerId().toString(),
+            //         String.valueOf(ORDER_DRIVER_CUSTOMER_TIMEOUT)
+            // );
 
 
             // 删除订单标识位(抢单后,会被主动删除)
@@ -290,13 +286,13 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
     public Boolean isDriverCurrentOrder(Long driverId, Long orderId) {
         Boolean isFlag = isCurrentOrder(false, driverId, orderId);
 
-        if (Boolean.TRUE.equals(isFlag)) {
-            CompletableFuture.runAsync(() -> {
-                stringRedisTemplate.expire(ORDER_DRIVER_CUSTOMER_HASH + orderId, ORDER_DRIVER_CUSTOMER_TIMEOUT,
-                        TimeUnit.MINUTES);
-            }, sharedThreadPool);
-
-        }
+        // if (Boolean.TRUE.equals(isFlag)) {
+        //     CompletableFuture.runAsync(() -> {
+        //         stringRedisTemplate.expire(ORDER_DRIVER_CUSTOMER_HASH + orderId, ORDER_DRIVER_CUSTOMER_TIMEOUT,
+        //                 TimeUnit.MINUTES);
+        //     }, sharedThreadPool);
+        //
+        // }
         return isFlag;
     }
 
@@ -391,32 +387,47 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
     }
 
     @Override
+    public OrderBillVo getOrderBillInfo(Long orderId) {
+        OrderBill orderBill = orderBillMapper.selectOne(new LambdaQueryWrapper<OrderBill>().eq(OrderBill::getOrderId, orderId));
+        return orderInfoConvert.toOrderBillVo(orderBill);
+    }
+
+    @Override
+    public OrderProfitsharingVo getOrderProfitSharing(Long orderId) {
+        OrderProfitsharing orderProfitsharing = orderProfitsharingMapper.selectOne(new LambdaQueryWrapper<OrderProfitsharing>().eq(OrderProfitsharing::getOrderId, orderId));
+        return orderInfoConvert.toOrderProfitsharingVo(orderProfitsharing);
+    }
+
+    @Override
     public Boolean isCustomerCurrentOrder(Long customerId, Long orderId) {
         Boolean currentOrder = isCurrentOrder(true, customerId, orderId);
-        if (Boolean.TRUE.equals(currentOrder)) {
-            CompletableFuture.runAsync(() -> {
-                stringRedisTemplate.expire(ORDER_DRIVER_CUSTOMER_HASH + orderId, ORDER_DRIVER_CUSTOMER_TIMEOUT,
-                        TimeUnit.MINUTES);
-            }, sharedThreadPool);
-
-        }
         return currentOrder;
     }
 
 
     private Boolean isCurrentOrder(boolean isCustomer, Long id, Long orderId) {
-        Map<Object, Object> entries =
-                stringRedisTemplate.opsForHash().entries(ORDER_DRIVER_CUSTOMER_HASH + orderId);
-        if (CollectionUtils.isEmpty(entries)) {
-            return Boolean.FALSE;
-        }
-        String jsonString = JSON.toJSONString(entries);
-        DcId dcId = JSON.parseObject(jsonString, DcId.class);
+        LambdaQueryWrapper<OrderInfo> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(BaseEntity::getId, orderId);
         if (isCustomer) {
-            return Objects.equals(dcId.getCustomerId(), id);
+            wrapper.eq(OrderInfo::getCustomerId, id);
+        } else {
+            wrapper.eq(OrderInfo::getDriverId, id);
         }
+        long count = count(wrapper);
+        return count == 1;
 
-        return Objects.equals(dcId.getDriverId(), id);
+        // Map<Object, Object> entries =
+        //         stringRedisTemplate.opsForHash().entries(ORDER_DRIVER_CUSTOMER_HASH + orderId);
+        // if (CollectionUtils.isEmpty(entries)) {
+        //     return Boolean.FALSE;
+        // }
+        // String jsonString = JSON.toJSONString(entries);
+        // DcId dcId = JSON.parseObject(jsonString, DcId.class);
+        // if (isCustomer) {
+        //     return Objects.equals(dcId.getCustomerId(), id);
+        // }
+        //
+        // return Objects.equals(dcId.getDriverId(), id);
 
     }
 

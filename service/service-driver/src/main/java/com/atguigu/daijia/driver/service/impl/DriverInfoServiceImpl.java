@@ -38,6 +38,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -45,6 +46,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -179,62 +181,64 @@ public class DriverInfoServiceImpl extends ServiceImpl<DriverInfoMapper, DriverI
 
     @Override
     public DriverAuthInfoVo getDriverAuthInfo(Long driverId) {
-
-
         CompletableFuture<DriverAuthInfoVo> infoFuture = CompletableFuture.supplyAsync(() -> {
             DriverInfo driverInfo = baseMapper.selectById(driverId);
             if (null == driverInfo) throw new GuiguException(ResultCodeEnum.DATA_ERROR);
             return driverInfoConvert.toDriverAuthInfoVo(driverInfo);
         }, sharedThreadPool);
-
-        // 身份证正反面 + 手持身份证
-        CompletableFuture<Void> idCardBackUrlFuture = infoFuture.thenAccept((driverAuthInfoVo) -> {
-            if (StringUtils.isNotBlank(driverAuthInfoVo.getIdcardBackUrl()))
-                driverAuthInfoVo.setIdcardBackShowUrl(cosService.getImageUrl(driverAuthInfoVo.getIdcardBackUrl()));
-        });
-        CompletableFuture<Void> idCardFrontFuture = infoFuture.thenAccept((driverAuthInfoVo) -> {
-            if (StringUtils.isNotBlank(driverAuthInfoVo.getIdcardFrontUrl()))
-                driverAuthInfoVo.setIdcardFrontShowUrl(cosService.getImageUrl(driverAuthInfoVo.getIdcardFrontUrl()));
-        });
-
-        CompletableFuture<Void> idCardHandFuture = infoFuture.thenAccept((driverAuthInfoVo) -> {
-            if (StringUtils.isNotBlank(driverAuthInfoVo.getIdcardHandUrl()))
-                driverAuthInfoVo.setIdcardHandShowUrl(cosService.getImageUrl(driverAuthInfoVo.getIdcardHandUrl()));
-        });
-
-        // 驾驶证正反面 + 手持
-        CompletableFuture<Void> driverLicenseFrontUrlFuture = infoFuture.thenAccept((driverAuthInfoVo) -> {
-            if (StringUtils.isNotBlank(driverAuthInfoVo.getDriverLicenseFrontUrl()))
-                driverAuthInfoVo.setDriverLicenseFrontShowUrl(cosService.getImageUrl(driverAuthInfoVo.getDriverLicenseFrontUrl()));
-        });
-
-        CompletableFuture<Void> driverLicenseBackUrlFuture = infoFuture.thenAccept((driverAuthInfoVo) -> {
-            if (StringUtils.isNotBlank(driverAuthInfoVo.getDriverLicenseBackUrl()))
-                driverAuthInfoVo.setDriverLicenseBackShowUrl(cosService.getImageUrl(driverAuthInfoVo.getDriverLicenseBackUrl()));
-
-        });
-        CompletableFuture<Void> driverLicenseHandShowUrlFuture = infoFuture.thenAccept((driverAuthInfoVo) -> {
-            if (StringUtils.isNotBlank(driverAuthInfoVo.getDriverLicenseHandShowUrl()))
-                driverAuthInfoVo.setDriverLicenseHandShowUrl(cosService.getImageUrl(driverAuthInfoVo.getDriverLicenseHandUrl()));
-
-        });
-
         try {
-            CompletableFuture.allOf(infoFuture, idCardFrontFuture, idCardBackUrlFuture,
-                    idCardHandFuture, driverLicenseBackUrlFuture, driverLicenseFrontUrlFuture,
-                    driverLicenseHandShowUrlFuture).get(10,
-                    TimeUnit.SECONDS);
+            // 2. 获取基本信息并设置超时
+            DriverAuthInfoVo driverAuthInfoVo = infoFuture.get(2, TimeUnit.SECONDS);
+
+            // 3. 并行处理所有图片URL转换
+            List<CompletableFuture<Void>> imageFutures = new ArrayList<>();
+
+            // 处理身份证相关图片
+            imageFutures.add(processImageAsync(driverAuthInfoVo::setIdcardBackShowUrl,
+                    driverAuthInfoVo.getIdcardBackUrl()));
+            imageFutures.add(processImageAsync(driverAuthInfoVo::setIdcardFrontShowUrl,
+                    driverAuthInfoVo.getIdcardFrontUrl()));
+            imageFutures.add(processImageAsync(driverAuthInfoVo::setIdcardHandShowUrl,
+                    driverAuthInfoVo.getIdcardHandUrl()));
+
+            // 处理驾驶证相关图片
+            imageFutures.add(processImageAsync(driverAuthInfoVo::setDriverLicenseBackShowUrl,
+                    driverAuthInfoVo.getDriverLicenseBackUrl()));
+            imageFutures.add(processImageAsync(driverAuthInfoVo::setDriverLicenseFrontShowUrl,
+                    driverAuthInfoVo.getDriverLicenseFrontUrl()));
+            imageFutures.add(processImageAsync(driverAuthInfoVo::setDriverLicenseHandShowUrl,
+                    driverAuthInfoVo.getDriverLicenseHandUrl()));
+
+            // 4. 等待所有图片处理完成
+            CompletableFuture.allOf(imageFutures.toArray(new CompletableFuture[0]))
+                    .get(8, TimeUnit.SECONDS); // 总超时时间10秒(2+8)
+
+            return driverAuthInfoVo;
         } catch (TimeoutException e) {
-            log.error("获取司机的认证信息超时, 原因={}", e.getMessage());
+            log.warn("获取司机的认证信息超时, 原因={}", e.getMessage());
             throw new GuiguException(ResultCodeEnum.TIMEOUT_ERROR);
-        } catch (Exception e) {
-            log.error("获取司机的认证信息失败, 原因={}", e.getMessage());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("获取司机[{}]认证信息被中断", driverId);
+            throw new GuiguException(ResultCodeEnum.SYSTEM_ERROR);
+        }catch (Exception e) {
+            if (e.getCause() instanceof GuiguException) {
+                throw (GuiguException) e.getCause();
+            }
+            log.warn("获取司机的认证信息失败, 原因={}", e.getMessage());
             throw new GuiguException(ResultCodeEnum.DATA_ERROR);
         }
 
 
-        return infoFuture.join();
+    }
 
+    // 辅助方法：异步处理图片URL
+    private CompletableFuture<Void> processImageAsync(Consumer<String> setter, String imageUrl) {
+        return CompletableFuture.runAsync(() -> {
+            if (StringUtils.isNotBlank(imageUrl)) {
+                setter.accept(cosService.getImageUrl(imageUrl));
+            }
+        }, sharedThreadPool);
     }
 
     // 创建司机人脸模型

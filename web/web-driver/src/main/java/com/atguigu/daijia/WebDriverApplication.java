@@ -1,5 +1,6 @@
 package com.atguigu.daijia;
 
+import com.atguigu.daijia.common.anno.EnableMyThreadPoolConfig;
 import org.dromara.x.file.storage.spring.EnableFileStorage;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -11,6 +12,7 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
 @EnableDiscoveryClient
 @EnableFeignClients
 @EnableFileStorage
+@EnableMyThreadPoolConfig
 public class WebDriverApplication {
 
     public static void main(String[] args) {

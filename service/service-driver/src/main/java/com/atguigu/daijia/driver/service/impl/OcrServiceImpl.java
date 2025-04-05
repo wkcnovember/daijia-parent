@@ -24,11 +24,8 @@ import org.joda.time.format.DateTimeFormat;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-
 @Slf4j
 @Service
-@SuppressWarnings({"unchecked", "rawtypes"})
 public class OcrServiceImpl implements OcrService {
 
     @Resource

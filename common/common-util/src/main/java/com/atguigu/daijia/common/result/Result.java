@@ -18,8 +18,6 @@ public class Result<T> {
     // 返回码
     private Integer code;
 
-
-
     // 返回消息
     private String message;
 
@@ -106,12 +104,13 @@ public class Result<T> {
             throw new GuiguException(this.getCode(), this.getMessage());
         }
     }
-    public void throwOnFailureOrDataIsNull() {
+    public Result<T> throwOnFailureOrDataIsNull() {
         if (checkIsError()) {
             throw new GuiguException(this.getCode(), this.getMessage());
         }
         if (this.data == null) {
             throw new GuiguException(ResultCodeEnum.DATA_ERROR);
         }
+        return this;
     }
 }

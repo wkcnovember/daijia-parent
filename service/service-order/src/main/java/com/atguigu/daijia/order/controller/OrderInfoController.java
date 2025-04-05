@@ -10,7 +10,9 @@ import com.atguigu.daijia.model.query.order.OrderCount;
 import com.atguigu.daijia.model.validate.group.ServiceGroup;
 import com.atguigu.daijia.model.vo.base.PageVo;
 import com.atguigu.daijia.model.vo.order.CurrentOrderInfoVo;
+import com.atguigu.daijia.model.vo.order.OrderBillVo;
 import com.atguigu.daijia.model.vo.order.OrderListVo;
+import com.atguigu.daijia.model.vo.order.OrderProfitsharingVo;
 import com.atguigu.daijia.order.service.OrderInfoService;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.swagger.v3.oas.annotations.Operation;
@@ -151,6 +153,17 @@ public class OrderInfoController {
         Page<OrderInfo> pageParam = new Page<>(page, limit);
         PageVo<OrderListVo> pageVo = orderInfoService.findDriverOrderPage(pageParam, driverId);
         return Result.ok(pageVo);
+    }
+
+    @Operation(summary = "根据订单id获取实际账单信息")
+    @GetMapping("/getOrderBillInfo/{orderId}")
+    public Result<OrderBillVo> getOrderBillInfo(@PathVariable("orderId") @NotNull @Positive Long orderId) {
+        return Result.ok(orderInfoService.getOrderBillInfo(orderId));
+    }
+    @Operation(summary = "根据订单id获取实际分账信息")
+    @GetMapping("/getOrderProfitSharing/{orderId}")
+    public Result<OrderProfitsharingVo> getOrderProfitSharing(@PathVariable("orderId") @NotNull @Positive  Long orderId) {
+        return Result.ok(orderInfoService.getOrderProfitSharing(orderId));
     }
 
 

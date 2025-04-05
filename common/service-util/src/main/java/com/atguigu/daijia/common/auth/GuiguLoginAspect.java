@@ -8,14 +8,13 @@ import com.atguigu.daijia.model.constants.auth.UserType;
 import com.atguigu.daijia.model.constants.redis.AuthConstents;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -43,25 +42,22 @@ public class GuiguLoginAspect {
         HttpServletRequest request = sra.getRequest();
 
 
-
-
         // 2 从请求头获取token
         String token = request.getHeader(AuthConstants.TOKEN_NAME);
 
         // 3 判断token是否为空，如果为空，返回登录提示
-        if (!StringUtils.hasText(token)) {
+        if (StringUtils.isBlank(token)) {
             throw new GuiguException(ResultCodeEnum.LOGIN_AUTH);
         }
         String loginType = request.getHeader(AuthConstants.LOGIN_TYPE);
-
-      String type  =  switch (loginType) {
-            case UserType.CUSTOMER_TYPE  ->
-                 AuthConstents.CUSTOMER_LOGIN_KEY_PREFIX;
-          case UserType.DRIVER_TYPE ->
-              AuthConstents.DRIVER_LOGIN_KEY_PREFIX;
-          case UserType.MANAGER_TYPE ->
-              AuthConstents.MANAGER_LOGIN_KEY_PREFIX;
-          default ->   throw new GuiguException(ResultCodeEnum.LOGIN_AUTH);
+        if (StringUtils.isBlank(loginType)) {
+            throw new GuiguException(ResultCodeEnum.LOGIN_AUTH);
+        }
+        String type = switch (loginType) {
+            case UserType.CUSTOMER_TYPE -> AuthConstents.CUSTOMER_LOGIN_KEY_PREFIX;
+            case UserType.DRIVER_TYPE -> AuthConstents.DRIVER_LOGIN_KEY_PREFIX;
+            case UserType.MANAGER_TYPE -> AuthConstents.MANAGER_LOGIN_KEY_PREFIX;
+            default -> throw new GuiguException(ResultCodeEnum.LOGIN_AUTH);
 
         };
 
@@ -69,7 +65,7 @@ public class GuiguLoginAspect {
         String customerId = stringRedisTemplate.opsForValue()
                 .get(type + token);
 
-        if (!StringUtils.hasText(customerId)) {
+        if (StringUtils.isBlank(customerId)) {
             throw new GuiguException(ResultCodeEnum.LOGIN_AUTH);
         }
 

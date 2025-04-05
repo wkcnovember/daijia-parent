@@ -7,7 +7,9 @@ import com.atguigu.daijia.model.entity.order.OrderProfitsharing;
 import com.atguigu.daijia.model.form.customer.SubmitOrderForm;
 import com.atguigu.daijia.model.form.order.OrderInfoForm;
 import com.atguigu.daijia.model.form.order.UpdateOrderBillForm;
+import com.atguigu.daijia.model.vo.order.OrderBillVo;
 import com.atguigu.daijia.model.vo.order.OrderInfoVo;
+import com.atguigu.daijia.model.vo.order.OrderProfitsharingVo;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
@@ -26,10 +28,14 @@ public interface OrderInfoConvert {
 
     OrderInfoVo toOrderInfoVo(OrderInfo orderInfo);
 
-    @Mapping(target = "payAmount",source = "totalAmount")
+    @Mapping(target = "payAmount", source = "totalAmount")
     OrderBill toOrderBill(UpdateOrderBillForm updateOrderBillForm);
 
-    @Mapping(target = "ruleId",source = "profitsharingRuleId")
+    @Mapping(target = "ruleId", source = "profitsharingRuleId")
     OrderProfitsharing toOrderProfitsharing(UpdateOrderBillForm updateOrderBillForm);
+
+    OrderBillVo toOrderBillVo(OrderBill orderBill);
+
+    OrderProfitsharingVo toOrderProfitsharingVo(OrderProfitsharing orderProfitsharing);
 
 }

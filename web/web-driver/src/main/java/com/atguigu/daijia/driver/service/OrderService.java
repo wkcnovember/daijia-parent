@@ -35,6 +35,8 @@ public interface OrderService {
 
     Boolean startDrive(StartDriveForm startDriveForm);
 
+    Boolean endDriveThread(OrderFeeForm orderFeeForm);
+
     Boolean endDrive(OrderFeeForm orderFeeForm);
 
 
