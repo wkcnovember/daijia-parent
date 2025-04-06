@@ -61,5 +61,16 @@
           AND info.is_deleted = 0
           AND bill.is_deleted = 0
     </select>
+    <select id="getOrderRewardFee" resultType="com.atguigu.daijia.model.vo.order.OrderRewardVo">
+        SELECT info.id,
+               info.driver_id,
+               bill.reward_fee
+        FROM order_info info
+                 JOIN order_bill bill
+                      ON info.id = bill.order_id
+        WHERE info.order_no = #{orderNo}
+          AND info.is_deleted = 0
+          AND bill.is_deleted = 0
+    </select>
 </mapper>
 

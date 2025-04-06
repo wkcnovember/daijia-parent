@@ -64,7 +64,7 @@ public class OrderController {
         return Result.ok(orderService.robNewOrder(driverId, orderId));
     }
 
-    @Operation(summary = "获取订单账单详细信息")
+    @Operation(summary = "获取订单and账单详细信息")
     @KjyLogin
     @GetMapping("/getOrderInfo/{orderId}")
     public Result<OrderInfoVo> getOrderInfo(@PathVariable("orderId") @NotNull @Positive Long orderId) {

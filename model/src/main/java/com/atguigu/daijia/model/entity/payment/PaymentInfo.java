@@ -28,7 +28,7 @@ public class PaymentInfo extends BaseEntity {
 	@TableField("order_no")
 	private String orderNo;
 
-	@Schema(description = "付款方式：1101-微信 1102-支付宝")
+	@Schema(description = "付款方式：1-微信 2-支付宝")
 	@TableField("pay_way")
 	private Integer payWay;
 

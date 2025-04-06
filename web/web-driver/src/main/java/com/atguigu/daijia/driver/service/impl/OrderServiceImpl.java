@@ -29,7 +29,10 @@ import com.atguigu.daijia.model.vo.customer.CustomerInfoVo;
 import com.atguigu.daijia.model.vo.map.DrivingLineVo;
 import com.atguigu.daijia.model.vo.map.OrderLocationVo;
 import com.atguigu.daijia.model.vo.map.OrderServiceLastLocationVo;
-import com.atguigu.daijia.model.vo.order.*;
+import com.atguigu.daijia.model.vo.order.CurrentOrderInfoVo;
+import com.atguigu.daijia.model.vo.order.NewOrderDataVo;
+import com.atguigu.daijia.model.vo.order.OrderInfoVo;
+import com.atguigu.daijia.model.vo.order.OrderListVo;
 import com.atguigu.daijia.model.vo.rules.FeeRuleResponseVo;
 import com.atguigu.daijia.model.vo.rules.ProfitsharingRuleResponseVo;
 import com.atguigu.daijia.model.vo.rules.RewardRuleResponseVo;
@@ -121,27 +124,69 @@ public class OrderServiceImpl implements OrderService {
         OrderInfoVo orderInfoVo = orderInfoConvert.toOrderInfoVo(orderInfo);
         orderInfoVo.setOrderId(orderId);
 
-        // 乘客信息
-        Result<CustomerInfoVo> customerInfoVoResult =
-                customerInfoFeignClient.getCustomerInfoVo(orderInfo.getCustomerId());
-        customerInfoVoResult.throwOnFailureOrDataIsNull();
-        orderInfoVo.setCustomerInfoVo(customerInfoVoResult.getData());
+        // 2. 使用CompletableFuture并行获取乘客信息和可能需要的账单/分账信息
+        CompletableFuture<Result<CustomerInfoVo>> customerFuture = CompletableFuture.supplyAsync(() ->
+                customerInfoFeignClient.getCustomerInfoVo(orderInfo.getCustomerId()), sharedThreadPool);
 
-        // 结束代驾and之后才有账单和分账信息~
+        CompletableFuture<Void> billAndProfitFuture = CompletableFuture.completedFuture(null);
+
         if (orderInfo.getStatus() >= OrderStatus.END_SERVICE.getStatus()) {
-            // 账单信息
-            OrderBillVo orderBillVo = orderInfoFeignClient
-                    .getOrderBillInfo(orderId)
-                    .throwOnFailureOrDataIsNull()
-                    .getData();
-            // 分账信息
-            OrderProfitsharingVo orderProfitsharing = orderInfoFeignClient
-                    .getOrderProfitSharing(orderId)
-                    .throwOnFailureOrDataIsNull()
-                    .getData();
-            orderInfoVo.setOrderBillVo(orderBillVo);
-            orderInfoVo.setOrderProfitsharingVo(orderProfitsharing);
+            // 并行获取账单和分账信息
+            billAndProfitFuture = CompletableFuture.allOf(
+                    CompletableFuture.supplyAsync(() ->
+                                    orderInfoFeignClient.getOrderBillInfo(orderId), sharedThreadPool)
+                            .thenAccept(result ->
+                                    orderInfoVo.setOrderBillVo(result.throwOnFailureOrDataIsNull().getData())),
+
+                    CompletableFuture.supplyAsync(() ->
+                                    orderInfoFeignClient.getOrderProfitSharing(orderId), sharedThreadPool)
+                            .thenAccept(result ->
+                                    orderInfoVo.setOrderProfitsharingVo(result.throwOnFailureOrDataIsNull().getData()))
+            );
         }
+        // 3. 等待所有异步任务完成
+        try {
+            // 设置乘客信息
+            orderInfoVo.setCustomerInfoVo(
+                    customerFuture.get(2, TimeUnit.SECONDS).throwOnFailureOrDataIsNull().getData()
+            );
+
+            // 等待账单和分账信息完成(如果有)
+            billAndProfitFuture.get(2, TimeUnit.SECONDS);
+        } catch (TimeoutException e) {
+            throw new GuiguException(ResultCodeEnum.REMOTE_TIMEOUT);
+        } catch (ExecutionException e) {
+            if (e.getCause() instanceof GuiguException) {
+                throw (GuiguException) e.getCause();
+            }
+            throw new GuiguException(ResultCodeEnum.SYSTEM_ERROR);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.warn("Task interrupted", e); // 记录中断日志
+            throw new GuiguException(ResultCodeEnum.SYSTEM_ERROR);
+        }
+
+        // // 乘客信息
+        // Result<CustomerInfoVo> customerInfoVoResult =
+        //         customerInfoFeignClient.getCustomerInfoVo(orderInfo.getCustomerId());
+        // customerInfoVoResult.throwOnFailureOrDataIsNull();
+        // orderInfoVo.setCustomerInfoVo(customerInfoVoResult.getData());
+        //
+        // // 结束代驾and之后才有账单和分账信息~
+        // if (orderInfo.getStatus() >= OrderStatus.END_SERVICE.getStatus()) {
+        //     // 账单信息
+        //     OrderBillVo orderBillVo = orderInfoFeignClient
+        //             .getOrderBillInfo(orderId)
+        //             .throwOnFailureOrDataIsNull()
+        //             .getData();
+        //     // 分账信息
+        //     OrderProfitsharingVo orderProfitsharing = orderInfoFeignClient
+        //             .getOrderProfitSharing(orderId)
+        //             .throwOnFailureOrDataIsNull()
+        //             .getData();
+        //     orderInfoVo.setOrderBillVo(orderBillVo);
+        //     orderInfoVo.setOrderProfitsharingVo(orderProfitsharing);
+        // }
 
         return orderInfoVo;
     }
@@ -338,7 +383,6 @@ public class OrderServiceImpl implements OrderService {
         updateOrderBillForm.setProfitsharingRuleId(profitsharingRuleResponseVo.getProfitsharingRuleId());
         return updateOrderBillForm;
     }
-
 
 
     /**

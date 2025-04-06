@@ -1,5 +1,4 @@
 spring:
-
   application:
     name: service-order
   cloud:
@@ -17,3 +16,24 @@ spring:
       - optional:nacos:${spring.application.name}-dev.${spring.cloud.nacos.config.file-extension}
       - optional:nacos:common-account.yaml
 
+alipay:
+  app-id: 9021000134688403
+  app-private-key: MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCCJcXAsf5L2mrLD8a8xXxfpcBkTG5hhS+2Vn6oEmaF4YpP0Czz8+89y9dOuqNxHeEPgXX5legaYWWr7sHEy5Zp8WNxnAnZoobfswVHG3tGC7lami1Xz94dBD9eC7TLTZH9pN3sA5Ci1eiDA6bQTwbgWY2OZNP+N/+rG5FUhBaJ7phjowBjfKs6476Z/O5RknFEC5F69+lSKa01NSrWFnpEMFvRif31ntUTtXvVq8gVrEd2dtEge9UGZLXqx9HoWOK19dYU/f1dUqmOt4p8/qlUrJ56B4cD/O+C20mKbsnt2oEpydZXtkzZHHE4xjYd12PYBQDHm/Vqj+VUqhiyL5UNAgMBAAECggEAQF4oIPanW6Kp4MZrt19A9RlIPxLiIM87WsYKnFuFYz+6JWFDamBB+eFAGosKXN63OfEAhTFT+wAixdcu9ILwYHNniH/xCzdr12V1/cYkwO75fEr2lBCVvOol4QCPKWGzC6ynqZvVxANhnLKIpUwAjaMc9Mj/ZCMUCu92gENX1l17XzbBZm7ha0kI1xueBL4BJ2N3k0LwXWhcqtZbkaN7TDsLDz1cKWpnngHyQdb5II333MtnjdY7ZM8m5YL6XvtCV9Gz6ytb33bX0WPcCRI61KfLsHy75K+5RjVOF/6aiOlUN/JvaWJWJtR6wcQPKiliNotPpd9BNDMKQrfBm6IPTQKBgQC6XEuyZrA31jm28Uet2lgZW9k6O9euDk+A7X4JJdhwe+/a9BV3mItO7Q2lwuveEeWhLoVZbi8MUvRuQIp+6zCXO2gOdaV3c+5ZTMhBXwLuj/ARhzghEJDaacpt3rNtzdYnOLS9lIKQtSltDcjh9W8ARJ0ajC0xTpJ2PyWdLex4xwKBgQCyyAFkfNL1vdh2LvSqFW8SWoIin7kcAnlluqXW6uCOpVDt1yAhf8imbVjEP749cBbb5yJw0sE5LU0q3w4OIEBdlp+JZQQx8uEyC61zrisWTthVT/DX8r75EXadSBmkjd1HUN91SCj9RD1PCiae0QbylCjxPZj2/jRWb6RnZa73iwKBgQCZZz4cZXErFVm+4NArKO+aOEQRLo90xGznaRd1ekS3Gx4usvs0zknmNzYju9cinsLSMhQssIlj8KkqVFBs9zaxVoJqXKdPNAwAUDcLsKUeMTfhhdhLR3Klh63NUSOMAIMHGCOXZrcvXSDzlwREFB9CLjjQUJEm5FGlqodQ4iukowKBgDxWL9IgJnp1Nea89imozjGdhin1Sd3gH+RrV6ju4BaESIncfqWPoMI6SSkCckv91lkk6oS1PCz10wNTAEVYMSDkwrb19rJ8y++97S4La9M9jNlN/3SCIl2gvS1btfvJPRLigmfskJjZPO+990bGONgJlL/GECfbpwI873lN4fz9AoGBAIekKP5GCD+ikv77tzafKwVKrgxwAsJsDeWJ7CyqdcEom7MsT+4379i6mgloj9Ie1etwuuBTKTg9zei+6VdhVaMeNdNAS7V0Tb4rj7RTWXEsk7z+1NB8bs1UHj4ssYTlKcTeNSCy/jQ3QbUi8XzBQXj3XcUsNhz0NumxXoyqrFFM
+  alipay-public-key: MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAjOjHzXNIdJigc1PDTrYXz3O8ULRaKciVi9vaXV3TZLBVYfTYib2UyGCpzLT6wjXnN3p3ABLI+W4SXRf+8mAMsiWnHKqJeOM3vuaWaIb1Moi5Q4o3G/bFPmrbH5ecfwpp7Mk1BNwvYfZ9JLE0b2FQJy7TMUdPbxGqFRRfzQ5Jis1vSxa7kCPNa2qtAFH4xnIwVFptravFDC+N+1xb0lLOzV+pluLBv4md9bb7M13vvYF0q2fBxjl6joyQaq182wOz3lJhtJcMuixvLAwHPqFZ6W5x8lAWDoOfxmH5EEuFrPz9M80arGelOUFF/LwBZTRX/dWvh7LNrYIKwq7SPtkITwIDAQAB
+  notify-url: https://dcf313a.r2.cpolar.top/open/payed/notify
+  return_url: http://member.gmall.com/memberOrder.html
+  charset: utf-8
+  format: JSON
+  log-path: /log
+  sign-type: RSA2
+
+seata:
+  # 当前应用的事务组名称（需唯一）
+  tx-service-group: tingshu-tx-group
+  service:
+    # 事务组到集群的映射
+    vgroup-mapping:
+      tingshu-tx-group: default  # 表示tingshu-tx-group事务组属于default集群
+    # 集群对应的TC服务器地址
+    grouplist:
+      default: 192.168.244.140:8091    # default集群的Transaction Coordinator地址

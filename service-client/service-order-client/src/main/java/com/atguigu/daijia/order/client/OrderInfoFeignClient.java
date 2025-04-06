@@ -8,10 +8,7 @@ import com.atguigu.daijia.model.form.order.UpdateOrderBillForm;
 import com.atguigu.daijia.model.form.order.UpdateOrderCartForm;
 import com.atguigu.daijia.model.query.order.OrderCount;
 import com.atguigu.daijia.model.vo.base.PageVo;
-import com.atguigu.daijia.model.vo.order.CurrentOrderInfoVo;
-import com.atguigu.daijia.model.vo.order.OrderBillVo;
-import com.atguigu.daijia.model.vo.order.OrderListVo;
-import com.atguigu.daijia.model.vo.order.OrderProfitsharingVo;
+import com.atguigu.daijia.model.vo.order.*;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -207,6 +204,38 @@ public interface OrderInfoFeignClient {
      */
     @GetMapping("/sendOrderBillInfo/{orderId}/{driverId}")
     Result<Boolean> sendOrderBillInfo(@PathVariable("orderId") Long orderId, @PathVariable("driverId") Long driverId);
+
+
+    /**
+     * 获取订单支付信息
+     *
+     * @param orderNo
+     * @param customerId
+     * @return
+     */
+    @GetMapping("/getOrderPayVo/{orderNo}/{customerId}")
+    Result<OrderPayVo> getOrderPayVo(@PathVariable("orderNo") String orderNo,
+                                     @PathVariable("customerId") Long customerId);
+
+
+    /**
+     * 更改订单支付状态
+     *
+     * @param orderNo
+     * @return
+     */
+    @GetMapping("/updateOrderPayStatus/{orderNo}")
+    Result<Boolean> updateOrderPayStatus(@PathVariable("orderNo") String orderNo);
+
+
+    /**
+     * 获取订单的系统奖励
+     *
+     * @param orderNo
+     * @return
+     */
+    @GetMapping("/getOrderRewardFee/{orderNo}")
+    Result<OrderRewardVo> getOrderRewardFee(@PathVariable("orderNo") String orderNo);
 
 
 }

@@ -4,19 +4,24 @@ import com.atguigu.daijia.common.execption.GuiguException;
 import com.atguigu.daijia.common.result.Result;
 import com.atguigu.daijia.common.result.ResultCodeEnum;
 import com.atguigu.daijia.common.util.AuthContextHolder;
+import com.atguigu.daijia.customer.client.CustomerInfoFeignClient;
 import com.atguigu.daijia.customer.service.OrderService;
 import com.atguigu.daijia.dispatch.client.NewOrderFeignClient;
 import com.atguigu.daijia.driver.client.DriverInfoFeignClient;
 import com.atguigu.daijia.map.client.LocationFeignClient;
 import com.atguigu.daijia.map.client.MapFeignClient;
+import com.atguigu.daijia.map.client.WxPayFeignClient;
 import com.atguigu.daijia.model.convert.map.CalculateDrivingLineConvert;
 import com.atguigu.daijia.model.convert.order.OrderInfoConvert;
 import com.atguigu.daijia.model.entity.order.OrderInfo;
 import com.atguigu.daijia.model.enums.order.OrderStatus;
+import com.atguigu.daijia.model.enums.payment.PayType;
 import com.atguigu.daijia.model.form.customer.ExpectOrderForm;
 import com.atguigu.daijia.model.form.customer.SubmitOrderForm;
 import com.atguigu.daijia.model.form.map.CalculateDrivingLineForm;
 import com.atguigu.daijia.model.form.order.OrderInfoForm;
+import com.atguigu.daijia.model.form.payment.CreateWxPaymentForm;
+import com.atguigu.daijia.model.form.payment.PaymentInfoForm;
 import com.atguigu.daijia.model.form.rules.FeeRuleRequestForm;
 import com.atguigu.daijia.model.vo.base.PageVo;
 import com.atguigu.daijia.model.vo.customer.ExpectOrderVo;
@@ -25,10 +30,8 @@ import com.atguigu.daijia.model.vo.driver.DriverInfoVo;
 import com.atguigu.daijia.model.vo.map.DrivingLineVo;
 import com.atguigu.daijia.model.vo.map.OrderLocationVo;
 import com.atguigu.daijia.model.vo.map.OrderServiceLastLocationVo;
-import com.atguigu.daijia.model.vo.order.CurrentOrderInfoVo;
-import com.atguigu.daijia.model.vo.order.OrderBillVo;
-import com.atguigu.daijia.model.vo.order.OrderInfoVo;
-import com.atguigu.daijia.model.vo.order.OrderListVo;
+import com.atguigu.daijia.model.vo.order.*;
+import com.atguigu.daijia.model.vo.payment.WxPrepayVo;
 import com.atguigu.daijia.model.vo.rules.FeeRuleResponseVo;
 import com.atguigu.daijia.order.client.OrderInfoFeignClient;
 import com.atguigu.daijia.rules.client.FeeRuleFeignClient;
@@ -40,12 +43,10 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.*;
 
 @Slf4j
 @Service
-@SuppressWarnings({"unchecked", "rawtypes"})
 public class OrderServiceImpl implements OrderService {
 
 
@@ -71,6 +72,12 @@ public class OrderServiceImpl implements OrderService {
 
     @Resource
     private LocationFeignClient locationFeignClient;
+
+    @Resource
+    private CustomerInfoFeignClient customerInfoFeignClient;
+
+    @Resource
+    private WxPayFeignClient wxPayFeignClient;
 
     @Override
     public ExpectOrderVo expectOrder(ExpectOrderForm expectOrderForm) {
@@ -100,17 +107,18 @@ public class OrderServiceImpl implements OrderService {
         return expectOrderVo;
     }
 
+
     @Override
     public Long submitOrder(SubmitOrderForm submitOrderForm) {
+
 
         // 1 重新计算驾驶线路
         CalculateDrivingLineForm calculateDrivingLineForm =
                 calculateDrivingLineConvert.toCalculateDrivingLineBySb(submitOrderForm);
         Result<DrivingLineVo> drivingLineVoResult = mapFeignClient.calculateDrivingLine(calculateDrivingLineForm);
-        drivingLineVoResult.throwOnFailure();
 
 
-        DrivingLineVo drivingLineVo = drivingLineVoResult.getData();
+        DrivingLineVo drivingLineVo = drivingLineVoResult.throwOnFailureOrDataIsNull().getData();
         // 2 重新订单费用
         FeeRuleRequestForm feeRuleRequestForm = new FeeRuleRequestForm();
         BigDecimal distance = drivingLineVo.getDistance();
@@ -271,6 +279,75 @@ public class OrderServiceImpl implements OrderService {
                 limit);
         customerOrderPage.throwOnFailureOrDataIsNull();
         return customerOrderPage.getData();
+    }
+
+    @Override
+    public WxPrepayVo createWxPayment(CreateWxPaymentForm createWxPaymentForm) {
+        // 1.获取订单支付相关信息
+        CompletableFuture<OrderPayVo> orderPayVoCompletableFuture = CompletableFuture.supplyAsync(() -> {
+            OrderPayVo orderPayVo = orderInfoFeignClient
+                    .getOrderPayVo(createWxPaymentForm.getOrderNo(), createWxPaymentForm.getCustomerId())
+                    .throwOnFailureOrDataIsNull()
+                    .getData();
+            // 判断是否在未支付状态
+            if (!Objects.equals(orderPayVo.getStatus(), OrderStatus.UNPAID.getStatus())) {
+                throw new GuiguException(ResultCodeEnum.REPEAT_SUBMIT);
+            }
+            return orderPayVo;
+        }, sharedThreadPool);
+        // 2.获取乘客微信openId
+        CompletableFuture<String> customerOpenIdFuture =
+                orderPayVoCompletableFuture.thenComposeAsync(orderPayVo -> CompletableFuture.supplyAsync(() ->
+                        customerInfoFeignClient
+                                .getCustomerOpenId(orderPayVo.getCustomerId())
+                                .throwOnFailureOrDataIsNull()
+                                .getData()), sharedThreadPool);
+
+        // 3.获取乘客微信openId
+        CompletableFuture<String> DriverOpenIdFuture =
+                orderPayVoCompletableFuture.thenComposeAsync(orderPayVo -> CompletableFuture.supplyAsync(() ->
+                        driverInfoFeignClient
+                                .getDriverOpenId(orderPayVo.getDriverId())
+                                .throwOnFailureOrDataIsNull()
+                                .getData()), sharedThreadPool);
+        // 合并所有结果
+        CompletableFuture<WxPrepayVo> resultFuture = CompletableFuture.allOf(orderPayVoCompletableFuture,
+                customerOpenIdFuture, DriverOpenIdFuture).thenApplyAsync(v -> {
+            // 4.封装微信下单对象，微信支付只关注以下订单属性
+            PaymentInfoForm paymentInfoForm = new PaymentInfoForm();
+            String customerOpenId = customerOpenIdFuture.join();
+            String driverOpenId = DriverOpenIdFuture.join();
+            OrderPayVo orderPayVo = orderPayVoCompletableFuture.join();
+            paymentInfoForm.setCustomerOpenId(customerOpenId);
+            paymentInfoForm.setDriverOpenId(driverOpenId);
+            paymentInfoForm.setOrderNo(orderPayVo.getOrderNo());
+            paymentInfoForm.setAmount(orderPayVo.getPayAmount());
+            paymentInfoForm.setContent(orderPayVo.getContent());
+            paymentInfoForm.setPayWay(PayType.WECHAT_PAY.getType());
+            return wxPayFeignClient.createWxPayment(paymentInfoForm).throwOnFailureOrDataIsNull().getData();
+        }, sharedThreadPool);
+        try {
+            return resultFuture.get(5, TimeUnit.SECONDS); // 设置总超时
+        } catch (TimeoutException e) {
+            log.warn("订单={}创建微信支付超时", createWxPaymentForm.getOrderNo());
+            throw new GuiguException(ResultCodeEnum.REMOTE_TIMEOUT);
+        } catch (ExecutionException e) {
+            if (e.getCause() instanceof GuiguException) {
+                throw (GuiguException) e.getCause();
+            }
+            log.warn("订单id={}结束服务异常={}", createWxPaymentForm.getOrderNo(), e);
+            throw new GuiguException(ResultCodeEnum.SYSTEM_ERROR);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.warn("Task interrupted", e); // 记录中断日志
+            throw new GuiguException(ResultCodeEnum.SYSTEM_ERROR);
+        }
+
+    }
+
+    @Override
+    public Boolean queryPayStatus(String orderNo) {
+        return wxPayFeignClient.queryPayStatus(orderNo).throwOnFailureOrDataIsNull().getData();
     }
 
 

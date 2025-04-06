@@ -4,6 +4,7 @@ import com.atguigu.daijia.model.entity.order.OrderInfo;
 import com.atguigu.daijia.model.query.order.OrderCount;
 import com.atguigu.daijia.model.vo.order.OrderListVo;
 import com.atguigu.daijia.model.vo.order.OrderPayVo;
+import com.atguigu.daijia.model.vo.order.OrderRewardVo;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -22,4 +23,5 @@ public interface OrderInfoMapper extends BaseMapper<OrderInfo> {
 
     OrderPayVo selectOrderPayVo(@Param("orderNo") String orderNo, @Param("customerId") Long customerId);
 
+    OrderRewardVo getOrderRewardFee(@Param("orderNo") String orderNo);
 }

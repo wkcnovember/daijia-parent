@@ -38,6 +38,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.Date;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -386,29 +387,31 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
 
     @Override
     public OrderBillVo getOrderBillInfo(Long orderId) {
-        OrderBill orderBill = orderBillMapper.selectOne(new LambdaQueryWrapper<OrderBill>().eq(OrderBill::getOrderId, orderId));
+        OrderBill orderBill = orderBillMapper.selectOne(new LambdaQueryWrapper<OrderBill>().eq(OrderBill::getOrderId,
+                orderId));
         return orderInfoConvert.toOrderBillVo(orderBill);
     }
 
     @Override
     public OrderProfitsharingVo getOrderProfitSharing(Long orderId) {
-        OrderProfitsharing orderProfitsharing = orderProfitsharingMapper.selectOne(new LambdaQueryWrapper<OrderProfitsharing>().eq(OrderProfitsharing::getOrderId, orderId));
+        OrderProfitsharing orderProfitsharing =
+                orderProfitsharingMapper.selectOne(new LambdaQueryWrapper<OrderProfitsharing>().eq(OrderProfitsharing::getOrderId, orderId));
         return orderInfoConvert.toOrderProfitsharingVo(orderProfitsharing);
     }
 
     @Override
     public Boolean sendOrderBillInfo(Long orderId, Long driverId) {
-        //更新订单信息
+        // 更新订单信息
         LambdaQueryWrapper<OrderInfo> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(OrderInfo::getId, orderId);
         queryWrapper.eq(OrderInfo::getDriverId, driverId);
-        //更新字段
+        // 更新字段
         OrderInfo updateOrderInfo = new OrderInfo();
         updateOrderInfo.setStatus(OrderStatus.UNPAID.getStatus());
-        //只能更新自己的订单
+        // 只能更新自己的订单
         int row = baseMapper.update(updateOrderInfo, queryWrapper);
-        if(row == 1) {
-            //记录日志
+        if (row == 1) {
+            // 记录日志
             this.log(orderId, OrderStatus.UNPAID.getStatus());
         } else {
             throw new GuiguException(ResultCodeEnum.UPDATE_ERROR);
@@ -419,11 +422,42 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
     @Override
     public OrderPayVo getOrderPayVo(String orderNo, Long customerId) {
         OrderPayVo orderPayVo = baseMapper.selectOrderPayVo(orderNo, customerId);
-        if(null != orderPayVo) {
+        if (null != orderPayVo) {
             String content = orderPayVo.getStartLocation() + " 到 " + orderPayVo.getEndLocation();
             orderPayVo.setContent(content);
         }
         return orderPayVo;
+    }
+
+    @Override
+    public Boolean updateOrderPayStatus(String orderNo) {
+        // 1 根据订单编号查询，判断订单状态
+        LambdaQueryWrapper<OrderInfo> wrapper = new LambdaQueryWrapper<>();
+        wrapper
+                .select(OrderInfo::getStatus,BaseEntity::getId)
+                .eq(OrderInfo::getOrderNo, orderNo);
+        OrderInfo orderInfo = baseMapper.selectOne(wrapper);
+        if (orderInfo == null || Objects.equals(orderInfo.getStatus(), OrderStatus.PAID.getStatus())) {
+            return Boolean.TRUE;
+        }
+
+        // 2 更新状态
+        orderInfo.setStatus(OrderStatus.PAID.getStatus());
+        orderInfo.setPayTime(LocalDateTime.now());
+
+        int rows = baseMapper.updateById(orderInfo);
+
+        if (rows == 1) {
+            return Boolean.TRUE;
+        } else {
+            throw new GuiguException(ResultCodeEnum.UPDATE_ERROR);
+        }
+    }
+
+    @Override
+    public OrderRewardVo getOrderRewardFee(String orderNo) {
+        OrderRewardVo orderRewardVo = baseMapper.getOrderRewardFee(orderNo);
+        return orderRewardVo;
     }
 
     @Override

@@ -17,6 +17,7 @@
         <module>rabbit-util</module>
         <module>spring-security</module>
         <module>common-log</module>
+        <module>ali-pay</module>
     </modules>
 
 </project>
