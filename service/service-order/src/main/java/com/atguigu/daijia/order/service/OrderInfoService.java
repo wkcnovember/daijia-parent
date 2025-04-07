@@ -32,6 +32,7 @@ public interface OrderInfoService extends IService<OrderInfo> {
     Boolean updateOrderCart(UpdateOrderCartForm updateOrderCartForm);
 
     Boolean isCustomerCurrentOrder(Long customerId, Long orderId);
+
     Boolean isDriverCurrentOrder(Long driverId, Long orderId);
 
     Boolean startDrive(StartDriveForm startDriveForm);
@@ -56,7 +57,9 @@ public interface OrderInfoService extends IService<OrderInfo> {
 
     OrderRewardVo getOrderRewardFee(String orderNo);
 
-    Boolean customerCancelNoAcceptOrder(Long customerId,Long orderId);
+    Boolean customerCancelNoAcceptOrder(Long customerId, Long orderId);
+
+    void orderCancel(Long orderId);
 
     Boolean isStartDrive(Long driverId, Long orderId);
 }

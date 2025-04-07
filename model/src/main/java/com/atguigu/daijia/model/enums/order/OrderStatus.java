@@ -17,8 +17,8 @@ public enum OrderStatus {
     DRIVER_CANCEL_ORDER(11, "司机撤单"),
     ACCIDENT_CLOSE(12, "事故关闭"),
     ORDER_TIMEOUT(13, "超时取消订单"),
-    CANCEL_ORDER(-1, "未接单取消订单"),
-    NULL_ORDER(-100, "不存在"),
+    CANCEL_ORDER(14, "未接单取消订单"),
+    NULL_ORDER(15, "不存在"),
     ;
 
     private final Integer status;

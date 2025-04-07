@@ -15,6 +15,7 @@ import com.atguigu.daijia.model.form.order.UpdateOrderCartForm;
 import com.atguigu.daijia.model.query.order.OrderCount;
 import com.atguigu.daijia.model.vo.base.PageVo;
 import com.atguigu.daijia.model.vo.order.*;
+import com.atguigu.daijia.order.handle.OrderDelayService;
 import com.atguigu.daijia.order.mapper.OrderBillMapper;
 import com.atguigu.daijia.order.mapper.OrderInfoMapper;
 import com.atguigu.daijia.order.mapper.OrderProfitsharingMapper;
@@ -77,6 +78,10 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
     private OrderProfitsharingMapper orderProfitsharingMapper;
 
 
+    @Resource
+    private OrderDelayService orderDelayService;
+
+
     @Override
     @Transactional
     public Long saveOrderInfo(OrderInfoForm orderInfoForm) {
@@ -86,10 +91,12 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
         orderInfo.setOrderNo(orderNo);
         orderInfo.setStatus(OrderStatus.WAITING_ACCEPT.getStatus());
         save(orderInfo);
+        // 生成订单之后，发送延迟消息
+        orderDelayService.addOrderToDelayQueue(orderInfo.getId().toString());
+
         // 记录日志
         log(orderInfo.getId(), orderInfo.getStatus());
         Long orderId = orderInfo.getId();
-
         // 向redis添加标识
         // 接单标识，标识不存在了说明不在等待接单状态了
         stringRedisTemplate.execute(orderIdSuitableDriverIds,
@@ -115,8 +122,6 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
     /**
      * 修改订单状态订单
      *
-     * @param orderId
-     * @param status
      * @return
      */
     @Override
@@ -158,7 +163,7 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
             }
 
 
-            // 校验订单的合法性
+            // 最终校验订单的合法性
             LambdaQueryWrapper<OrderInfo> wrapper =
                     new LambdaQueryWrapper<OrderInfo>()
                             .select(BaseEntity::getId,
@@ -472,6 +477,28 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
         }
         stringRedisTemplate.delete(ORDER_ACCEPT_MARK + orderId);
         return Boolean.TRUE;
+    }
+
+    /**
+     * 取消订单业务逻辑
+     */
+    @Override
+    public void orderCancel(Long orderId) {
+        //orderId查询订单信息
+        LambdaQueryWrapper<OrderInfo> wrapper = new LambdaQueryWrapper<OrderInfo>()
+                .select(BaseEntity::getId, OrderInfo::getStatus)
+                .eq(BaseEntity::getId, orderId);
+        OrderInfo orderInfo = baseMapper.selectOne(wrapper);
+        if(orderInfo == null || !Objects.equals(OrderStatus.WAITING_ACCEPT.getStatus(),orderInfo.getStatus())) {
+                return;
+        }
+        // 修改订单状态：取消状态
+        orderInfo.setStatus(OrderStatus.ORDER_TIMEOUT.getStatus());
+        baseMapper.updateById(orderInfo);
+
+        //删除接单标识
+
+        stringRedisTemplate.delete(RedisConstant.ORDER_ACCEPT_MARK + orderId);
     }
 
     @Override
