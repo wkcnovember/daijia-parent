@@ -146,7 +146,8 @@ public class LocationServiceImpl implements LocationService {
                     "return redis.call('EXPIRE', KEYS[1], ARGV[3])";
 
     /**
-     *  lua 保证 添加和过期一致性
+     * lua 保证 添加和过期一致性
+     *
      * @param form
      * @return
      */
@@ -158,7 +159,7 @@ public class LocationServiceImpl implements LocationService {
                 Collections.singletonList(orderKey),
                 form.getLongitude().toString(),
                 form.getLatitude().toString(),
-                "600" // 10分钟=600秒
+                String.valueOf(RedisConstant.UPDATE_ORDER_LOCATION_EXPIRES_TIME)
         );
         return Boolean.TRUE;
     }
@@ -239,8 +240,8 @@ public class LocationServiceImpl implements LocationService {
                     location2.getLongitude().doubleValue());
             realDistance += distance;
         }
-        //测试过程中，没有真正代驾，实际代驾GPS位置没有变化，模拟：实际代驾里程 = 预期里程 + 5
-        if(realDistance == 0) {
+        // 测试过程中，没有真正代驾，实际代驾GPS位置没有变化，模拟：实际代驾里程 = 预期里程 + 5
+        if (realDistance == 0) {
             return orderInfoFeignClient.getOrderInfo(orderId).getData().getExpectDistance().add(new BigDecimal("5"));
         }
         return new BigDecimal(realDistance);

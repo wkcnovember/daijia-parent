@@ -107,8 +107,7 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public Boolean robNewOrder(Long driverId, Long orderId) {
         Result<Boolean> result = orderInfoFeignClient.robNewOrder(driverId, orderId);
-        result.throwOnFailureOrDataIsNull();
-        return result.getData();
+        return result.throwOnFailureOrDataIsNull().getData();
     }
 
     @Override

@@ -25,16 +25,14 @@ public class LuaConfig {
         return script;
     }
 
-    /**
-     *  映射订单与乘客和司机的关系,校验合法性
-     * @return
-     */
-    @Bean(name = "orderDcMapping")
-    public DefaultRedisScript<Long> orderDcMapping() {
+    @Bean(name = "orderIdSuitableDriverIds")
+    public DefaultRedisScript<Long> orderIdSuitableDriverIds() {
         DefaultRedisScript<Long> script = new DefaultRedisScript<>();
         script.setScriptSource(new ResourceScriptSource(
-                new ClassPathResource("lua/add_order_customer_driver_mapper.lua")));
+                new ClassPathResource("lua/orderIdSuitableDriverIds.lua")));
         script.setResultType(Long.class); // 返回值类型
         return script;
     }
+
+
 }

@@ -10,7 +10,6 @@ import com.atguigu.daijia.model.form.map.UpdateOrderLocationForm;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.groups.Default;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
@@ -51,7 +50,7 @@ public class LocationController {
     @Operation(summary = "开始代驾服务：批量保存代驾服务订单位置")
     @KjyLogin
     @PostMapping("/saveOrderServiceLocation")
-    public Result<Boolean> saveOrderServiceLocation(@RequestBody @Validated @NotEmpty List<OrderServiceLocationForm> orderLocationServiceFormList) {
+    public Result<Boolean> saveOrderServiceLocation(@RequestBody @Validated  List<OrderServiceLocationForm> orderLocationServiceFormList) {
         return Result.ok(locationService.saveOrderServiceLocation(orderLocationServiceFormList));
     }
 

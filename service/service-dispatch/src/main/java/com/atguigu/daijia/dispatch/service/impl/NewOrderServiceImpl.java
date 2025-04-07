@@ -31,7 +31,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
-import static com.atguigu.daijia.common.constant.RedisConstant.DRIVER_ORDER_TEMP_LIST_EXPIRES_TIME;
+import static com.atguigu.daijia.common.constant.RedisConstant.*;
 
 @Slf4j
 @Service
@@ -94,7 +94,8 @@ public class NewOrderServiceImpl implements NewOrderService {
         LambdaQueryWrapper<OrderJob> wrapper = new LambdaQueryWrapper<OrderJob>()
                 .select(BaseEntity::getId, OrderJob::getJobId, OrderJob::getOrderId, OrderJob::getParameter)
                 .eq(OrderJob::getJobId, jobId);
-        OrderJob orderJob = orderJobMapper.selectOne(wrapper);
+        OrderJob orderJob = orderJobMapper
+                .selectOne(wrapper);
         if (orderJob == null) {
             // 停止并删除任务调度
             xxlJobClient.removeJob(jobId);
@@ -120,13 +121,10 @@ public class NewOrderServiceImpl implements NewOrderService {
         }
 
 
-        long time = newOrderTaskVo.getCreateTime().getTime() + DRIVER_ORDER_TEMP_LIST_EXPIRES_TIME * 1000;
+        long time = newOrderTaskVo.getCreateTime().getTime() + ORDER_ACCEPT_MARK_EXPIRES_TIME * 1000;
         // 超过15分钟自动取消订单
         Long orderId = newOrderTaskVo.getOrderId();
         if (System.currentTimeMillis() > time) {
-            Result<Boolean> updateOrderStatus = orderInfoFeignClient.updateOrderStatus(orderId,
-                    OrderStatus.ORDER_TIMEOUT.getStatus());
-            updateOrderStatus.throwOnFailure();
             // 停止并删除任务调度
             xxlJobClient.removeJob(jobId);
             return;
@@ -158,8 +156,10 @@ public class NewOrderServiceImpl implements NewOrderService {
             data.forEach(driver -> {
                 Long driverId = driver.getDriverId();
                 // 记录司机id，防止重复推送
-                String key = RedisConstant.DRIVER_ORDER_INFO_HASH + driverId;
-                Boolean isMember = stringRedisTemplate.opsForHash().hasKey(key, orderId.toString());
+                Boolean isMember = stringRedisTemplate.opsForSet().isMember(ORDER_ACCEPT_MARK + orderId,
+                        driverId.toString());
+                // String key = RedisConstant.DRIVER_ORDER_INFO_HASH + driverId;
+                // Boolean isMember = stringRedisTemplate.opsForHash().hasKey(key, orderId.toString());
                 if (Boolean.FALSE.equals(isMember)) {
                     // 把订单信息推送给满足条件多个司机
                     // stringRedisTemplate.opsForSet().add(repeatKey, driverId.toString());
@@ -174,7 +174,6 @@ public class NewOrderServiceImpl implements NewOrderService {
                     newOrderDataVo.setDistance(driver.getDistance());
                     newOrderDataVo.setCreateTime(newOrderTaskVo.getCreateTime());
 
-                    // String key = RedisConstant.DRIVER_ORDER_TEMP_LIST + driver.getDriverId();
 
                     Long execute = stringRedisTemplate.execute(addDriverOrders,
                             Collections.emptyList(),
@@ -185,34 +184,13 @@ public class NewOrderServiceImpl implements NewOrderService {
                             String.valueOf(DRIVER_ORDER_TEMP_LIST_EXPIRES_TIME)
                     );
                     log.info("订单加入到司机缓存中结果={}", execute);
-                    // 新订单保存司机的临时队列，Redis里面队列集合
-                    // Long result = stringRedisTemplate.execute(
-                    //         new DefaultRedisScript<>(script, Long.class),
-                    //         Collections.singletonList(key),
-                    //         newOrderTaskVo.getCreateTime().getTime(),
-                    //         JSON.toJSONString(newOrderDataVo),
-                    //         String.valueOf(DRIVER_ORDER_TEMP_LIST_EXPIRES_TIME)
-                    // );
 
-
-                    // stringRedisTemplate.opsForZSet().add(key,
-                    //         JSON.toJSONString(newOrderDataVo),
-                    //         System.currentTimeMillis());
-
-                    // stringRedisTemplate.opsForList().leftPush(key, JSON.toJSONString(newOrderDataVo));
-                    // 过期时间：15分钟
-                    // stringRedisTemplate.expire(key, RedisConstant.DRIVER_ORDER_TEMP_LIST_EXPIRES_TIME,
-                    //         TimeUnit.MINUTES);
                 }
 
 
             });
         }
 
-        // 过期时间：15分钟，超过15分钟没有接单自动取消
-        // stringRedisTemplate.expire(repeatKey,
-        //         RedisConstant.DRIVER_ORDER_REPEAT_LIST_EXPIRES_TIME,
-        //         TimeUnit.MINUTES);
     }
 
 

@@ -52,6 +52,16 @@ public class OrderInfoController {
         return Result.ok(orderInfoService.updateOrderStatus(orderId, status));
     }
 
+
+    @Operation(summary = "乘客取消下单")
+    @PutMapping("/customerCancelNoAcceptOrder/{customerId}/{orderId}")
+    public Result<Boolean> customerCancelNoAcceptOrder(@PathVariable("customerId") @NotNull @Positive Long customerId,
+                                                       @PathVariable("orderId") @NotNull @Positive Long orderId
+                                       ) {
+        return Result.ok(orderInfoService.customerCancelNoAcceptOrder(customerId,orderId));
+    }
+
+
     @Operation(summary = "司机抢单")
     @GetMapping("/robNewOrder/{driverId}/{orderId}")
     public Result<Boolean> robNewOrder(@PathVariable("driverId") @NotNull @Positive Long driverId,
@@ -113,6 +123,13 @@ public class OrderInfoController {
     @PostMapping("/startDrive")
     public Result<Boolean> startDrive(@RequestBody @Validated({ServiceGroup.class, Default.class}) StartDriveForm startDriveForm) {
         return Result.ok(orderInfoService.startDrive(startDriveForm));
+    }
+
+    @Operation(summary = "是否处于开始服务状态")
+    @PostMapping("/isStartDrive/{driverId}/{orderId}")
+    public Result<Boolean> isStartDrive(@PathVariable("driverId") @NotNull @Positive Long driverId,
+                                        @PathVariable("orderId") @NotNull @Positive Long orderId) {
+        return Result.ok(orderInfoService.isStartDrive(driverId,orderId));
     }
 
     @Operation(summary = "根据时间段获取订单数")

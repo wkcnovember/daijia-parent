@@ -21,7 +21,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Objects;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 @Slf4j
 @Service
@@ -37,6 +37,10 @@ public class DriverServiceImpl implements DriverService {
     private LocationFeignClient locationFeignClient;
     @Resource
     private NewOrderFeignClient newOrderFeignClient;
+
+
+    @Resource
+    private ThreadPoolExecutor sharedThreadPool;
 
     @Override
     public String login(String code) {
@@ -126,26 +130,79 @@ public class DriverServiceImpl implements DriverService {
         if (Boolean.FALSE.equals(updateRes)) {
             throw new GuiguException(ResultCodeEnum.DATA_ERROR);
         }
-        // 4 删除redis旧的司机位置信息
-        locationFeignClient.removeDriverLocation(driverId);
-        // 5 清空司机旧的临时队列数据
-        newOrderFeignClient.clearNewOrderQueueData(driverId);
-        return Boolean.TRUE;
+        // 3. 并行清理旧数据
+        CompletableFuture<Void> locationFuture = CompletableFuture.runAsync(() -> {
+            locationFeignClient.removeDriverLocation(driverId);
+        }, sharedThreadPool);
+
+        CompletableFuture<Void> orderQueueFuture = CompletableFuture.runAsync(() -> {
+            newOrderFeignClient.clearNewOrderQueueData(driverId);
+        }, sharedThreadPool);
+
+        // 等待清理完成
+        try {
+            CompletableFuture.allOf(locationFuture, orderQueueFuture).get(1,TimeUnit.SECONDS);
+            return Boolean.TRUE;
+        }  catch (TimeoutException e) {
+            log.warn("司机={}开启服务清理旧地址队列数据超时", driverId);
+            throw new GuiguException(ResultCodeEnum.REMOTE_TIMEOUT);
+        } catch (ExecutionException e) {
+            if (e.getCause() instanceof GuiguException) {
+                throw (GuiguException) e.getCause();
+            }
+            log.warn("司机={}开启服务清理旧地址队列数据={}", driverId, e);
+            throw new GuiguException(ResultCodeEnum.SYSTEM_ERROR);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.warn("Task interrupted", e); // 记录中断日志
+            throw new GuiguException(ResultCodeEnum.SYSTEM_ERROR);
+        }
+
+
 
     }
 
     @Override
     public Boolean stopService(Long driverId) {
-        //更新司机的接单状态 0
-        Result<Boolean> result = driverInfoFeignClient.updateServiceStatus(driverId,
-                DriverConstant.ServiceStatus.NOT_ACCEPTED_ORDERS.getStatus());
-        result.throwOnFailureOrDataIsNull();
-        //删除司机位置信息
-        Result<Boolean> result1 = locationFeignClient.removeDriverLocation(driverId);
-        result1.throwOnFailureOrDataIsNull();
-        //清空司机临时队列
-        Result<Boolean> result2 = newOrderFeignClient.clearNewOrderQueueData(driverId);
-        result2.throwOnFailureOrDataIsNull();
-        return Boolean.TRUE;
+        CompletableFuture<Void> updateDriverStatusFuture = CompletableFuture.runAsync(() -> {
+            // 更新司机的接单状态 0
+            Result<Boolean> result = driverInfoFeignClient.updateServiceStatus(driverId,
+                    DriverConstant.ServiceStatus.NOT_ACCEPTED_ORDERS.getStatus());
+            result.throwOnFailureOrDataIsNull();
+        }, sharedThreadPool);
+
+
+        CompletableFuture<Void> clearLocationFuture = CompletableFuture.runAsync(() -> {
+            // 删除司机位置信息
+            Result<Boolean> result1 = locationFeignClient.removeDriverLocation(driverId);
+            result1.throwOnFailureOrDataIsNull();
+        }, sharedThreadPool);
+
+        CompletableFuture<Void> clearOrderQueue = CompletableFuture.runAsync(() -> {
+            // 清空司机订单临时队列
+            Result<Boolean> result2 = newOrderFeignClient.clearNewOrderQueueData(driverId);
+            result2.throwOnFailureOrDataIsNull();
+        }, sharedThreadPool);
+
+        try {
+            CompletableFuture.allOf(updateDriverStatusFuture, clearLocationFuture, clearOrderQueue)
+                    .get(5, TimeUnit.SECONDS);
+            return Boolean.TRUE;
+        } catch (TimeoutException e) {
+            log.warn("司机={}停止服务超时", driverId);
+            throw new GuiguException(ResultCodeEnum.REMOTE_TIMEOUT);
+        } catch (ExecutionException e) {
+            if (e.getCause() instanceof GuiguException) {
+                throw (GuiguException) e.getCause();
+            }
+            log.warn("司机={}停止服务异常={}", driverId, e);
+            throw new GuiguException(ResultCodeEnum.SYSTEM_ERROR);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.warn("Task interrupted", e); // 记录中断日志
+            throw new GuiguException(ResultCodeEnum.SYSTEM_ERROR);
+        }
+
+
     }
 }

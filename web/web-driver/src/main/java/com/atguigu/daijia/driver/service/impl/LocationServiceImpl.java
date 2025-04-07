@@ -16,6 +16,7 @@ import com.atguigu.daijia.order.client.OrderInfoFeignClient;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
 import java.util.List;
 import java.util.Objects;
@@ -67,17 +68,21 @@ public class LocationServiceImpl implements LocationService {
         return updateOrderLocationToCache.getData();
     }
 
-    // todo 判断是否处于代驾状态才运行上传信息
     @Override
     public Boolean saveOrderServiceLocation(List<OrderServiceLocationForm> orderLocationServiceFormList) {
+        if (CollectionUtils.isEmpty(orderLocationServiceFormList)) {
+            return Boolean.TRUE;
+        }
         Long orderId = orderLocationServiceFormList.get(0).getOrderId();
         Long driverId = AuthContextHolder.getUserId();
-        Result<Boolean> driverOrderRes = orderInfoFeignClient.isDriverOrder(driverId, orderId);
-        driverOrderRes.throwOnFailureOrDataIsNull();
-        Boolean data = driverOrderRes.getData();
-        if (Boolean.FALSE.equals(data)) {
+
+        Result<Boolean> isStartDriverRes = orderInfoFeignClient.isStartDrive(driverId, orderId);
+        Boolean isStartDriver = isStartDriverRes.throwOnFailureOrDataIsNull().getData();
+        if (Boolean.FALSE.equals(isStartDriver)) {
             throw new GuiguException(ResultCodeEnum.ILLEGAL_REQUEST);
         }
+
+
         Result<Boolean> result = locationFeignClient.saveOrderServiceLocation(orderLocationServiceFormList);
         result.throwOnFailureOrDataIsNull();
         return result.getData();

@@ -7,11 +7,13 @@ public class RedisConstant {
     public static final String DRIVER_ORDER_INFO_HASH = "driver:hash:orders:";
 
 
-    // 司机抢到后订单,订单与 乘客和司机的标示
-    public static final String ORDER_DRIVER_CUSTOMER_HASH = "orders:dc:";
 
-    // 司机抢到后订单,订单与 乘客和司机的标示 超时时间
-    public static final int ORDER_DRIVER_CUSTOMER_TIMEOUT = 10;
+
+
+
+    // 订单延迟队列
+    public static final String ORDER_BLOCKED_QUEUE = "o:b";
+    public static final int ORDER_BLOCKED_QUEUE_TIMEOUT = 15;
 
 
     //用户登录
@@ -36,11 +38,11 @@ public class RedisConstant {
 
     //更新订单位置
     public static final String UPDATE_ORDER_LOCATION = "update:order:location:";
-    public static final long UPDATE_ORDER_LOCATION_EXPIRES_TIME = 15;
+    public static final long UPDATE_ORDER_LOCATION_EXPIRES_TIME = 60;
 
     //订单接单标识
-    public static final String ORDER_ACCEPT_MARK = "order:accept:mark:";
-    public static final long ORDER_ACCEPT_MARK_EXPIRES_TIME = 15;
+    public static final String ORDER_ACCEPT_MARK = "o:a:m:";
+    public static final long ORDER_ACCEPT_MARK_EXPIRES_TIME = 900;
 
     //抢新订单锁
     public static final String ROB_NEW_ORDER_LOCK = "rob:new:order:lock";

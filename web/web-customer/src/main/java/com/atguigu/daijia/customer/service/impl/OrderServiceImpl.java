@@ -185,10 +185,9 @@ public class OrderServiceImpl implements OrderService {
         if (Boolean.FALSE.equals(isValidateResult.getData())) {
             throw new GuiguException(ResultCodeEnum.ILLEGAL_REQUEST);
         }
-        Result<Boolean> result = orderInfoFeignClient.updateOrderStatus(orderId,
-                OrderStatus.CUSTOMER_CANCEL_ORDER.getStatus());
-        result.throwOnFailureOrDataIsNull();
-        return result.getData();
+        Result<Boolean> result = orderInfoFeignClient.customerCancelNoAcceptOrder(customerId,
+                orderId);
+        return result.throwOnFailureOrDataIsNull().getData();
     }
 
     @Override

@@ -238,4 +238,27 @@ public interface OrderInfoFeignClient {
     Result<OrderRewardVo> getOrderRewardFee(@PathVariable("orderNo") String orderNo);
 
 
+    /**
+     * 是否处于开始服务状态
+     * @param driverId
+     * @param orderId
+     * @return
+     */
+    @PostMapping("/isStartDrive/{driverId}/{orderId}")
+    Result<Boolean> isStartDrive(@PathVariable("driverId") Long driverId,
+                                 @PathVariable("orderId") Long orderId);
+
+    /**
+     * 乘客取消下单
+     *
+     * @param customerId
+     * @param orderId
+     * @return
+     */
+    @PutMapping("/customerCancelNoAcceptOrder/{customerId}/{orderId}")
+    Result<Boolean> customerCancelNoAcceptOrder(@PathVariable("customerId") Long customerId,
+                                                @PathVariable("orderId") Long orderId
+    );
+
+
 }

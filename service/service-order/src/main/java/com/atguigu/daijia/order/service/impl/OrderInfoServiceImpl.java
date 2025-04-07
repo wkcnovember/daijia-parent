@@ -22,6 +22,7 @@ import com.atguigu.daijia.order.mapper.OrderStatusLogMapper;
 import com.atguigu.daijia.order.service.OrderInfoService;
 import com.atguigu.daijia.order.service.OrderMonitorService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -40,8 +41,10 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.Objects;
 import java.util.UUID;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+
+import static com.atguigu.daijia.common.constant.RedisConstant.ORDER_ACCEPT_MARK;
+import static com.atguigu.daijia.common.constant.RedisConstant.ORDER_ACCEPT_MARK_EXPIRES_TIME;
 
 @Service
 @Slf4j
@@ -60,17 +63,14 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
     @Resource(name = "delDriverOrders")
     private DefaultRedisScript<Long> delDriverOrderKeys;
 
-    @Resource(name = "orderDcMapping")
-    private DefaultRedisScript<Long> orderDcMapping;
+    @Resource(name = "orderIdSuitableDriverIds")
+    private DefaultRedisScript<Long> orderIdSuitableDriverIds;
 
     @Resource
     private OrderMonitorService orderMonitorService;
 
     @Resource
     private OrderBillMapper orderBillMapper;
-
-    @Resource
-    private ThreadPoolExecutor sharedThreadPool;
 
 
     @Resource
@@ -86,16 +86,18 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
         orderInfo.setOrderNo(orderNo);
         orderInfo.setStatus(OrderStatus.WAITING_ACCEPT.getStatus());
         save(orderInfo);
+        // 记录日志
         log(orderInfo.getId(), orderInfo.getStatus());
         Long orderId = orderInfo.getId();
-        // 保存订单与乘客映射关系
-        // stringRedisTemplate.execute(orderDcMapping, Collections.emptyList(),
-        //         orderId.toString(),
-        //         "",
-        //         orderInfo.getCustomerId().toString(),
-        //         String.valueOf(ORDER_DRIVER_CUSTOMER_TIMEOUT)
-        //
-        // );
+
+        // 向redis添加标识
+        // 接单标识，标识不存在了说明不在等待接单状态了
+        stringRedisTemplate.execute(orderIdSuitableDriverIds,
+                Collections.emptyList(),
+                orderId.toString(),
+                "0",
+                String.valueOf(ORDER_ACCEPT_MARK_EXPIRES_TIME)
+        );
 
 
         return orderId;
@@ -122,8 +124,7 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
         OrderInfo orderInfo = new OrderInfo();
         orderInfo.setId(orderId);
         orderInfo.setStatus(status);
-        boolean b = updateById(orderInfo);
-        return b;
+        return updateById(orderInfo);
     }
 
     @Override
@@ -144,15 +145,20 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
             }
             // 1.此订单是否存在 + 属于用户的订单吗?
 
-            String key = RedisConstant.DRIVER_ORDER_INFO_HASH + driverId;
-            Boolean isExists = stringRedisTemplate.opsForHash().hasKey(
-                    key, orderId.toString());
+            Boolean isMember = stringRedisTemplate.opsForSet().isMember(ORDER_ACCEPT_MARK + orderId,
+                    driverId.toString());
 
-            if (Boolean.FALSE.equals(isExists)) {
+
+            if (Boolean.FALSE.equals(isMember)) {
+                // 清楚脏数据
+                delOrderZsetAndHash(driverId, orderId);
                 // 抢单失败
                 throw new GuiguException(ResultCodeEnum.NOT_EXISTS_ORDER);
+
             }
-            // 校验订单是否被不处于等待状态了
+
+
+            // 校验订单的合法性
             LambdaQueryWrapper<OrderInfo> wrapper =
                     new LambdaQueryWrapper<OrderInfo>()
                             .select(BaseEntity::getId,
@@ -169,44 +175,38 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
 
             }
             // 订单不在接单状态 删除redis对应的order缓存
-            // if (!Objects.equals(OrderStatus.WAITING_ACCEPT.getStatus(), orderInfo.getStatus())) {
-            //     log.warn("此订单处于非等待状态~");
-            //     // 清楚脏数据
-            //     delOrderZsetAndHash(driverId, orderId);
-            //     throw new GuiguException(ResultCodeEnum.NOT_EXISTS_ORDER);
-            // }
+            if (!Objects.equals(OrderStatus.WAITING_ACCEPT.getStatus(), orderInfo.getStatus())) {
+                log.warn("此订单处于非等待状态~");
+                // 清楚脏数据
+                delOrderZsetAndHash(driverId, orderId);
+                throw new GuiguException(ResultCodeEnum.NOT_EXISTS_ORDER);
+            }
             // 修改订单信息
             orderInfo.setDriverId(driverId);
             orderInfo.setAcceptTime(LocalDateTime.now());
             orderInfo.setStatus(OrderStatus.ACCEPTED.getStatus());
             boolean isSuccess = updateById(orderInfo);
             if (!isSuccess) {
-                // 抢单失败
+                // 清楚脏数据
+                delOrderZsetAndHash(driverId, orderId);
                 throw new GuiguException(ResultCodeEnum.NOT_EXISTS_ORDER);
             }
 
-            // 添加 订单与司机和乘客的标示
-            // stringRedisTemplate.execute(orderDcMapping, Collections.emptyList(),
-            //         orderId.toString(),
-            //         driverId.toString(),
-            //         orderInfo.getCustomerId().toString(),
-            //         String.valueOf(ORDER_DRIVER_CUSTOMER_TIMEOUT)
-            // );
-
-
-            // 删除订单标识位(抢单后,会被主动删除)
-            // delOrderZsetAndHash(driverId, orderId);
-
-
             // 记录日志
             log(orderId, orderInfo.getStatus());
+
+            // 删除订单对应的标示
+            stringRedisTemplate.delete(ORDER_ACCEPT_MARK + orderId);
+
             return Boolean.TRUE;
 
         } catch (GuiguException e) {
             // 抢单失败
-            throw new GuiguException(e.getCode(), e.getMessage());
+            throw e;
         } catch (Exception e) {
+            e.printStackTrace();
             log.error("司机抢单业务出现异常情况={}", e);
+            throw new GuiguException(ResultCodeEnum.DATA_ERROR);
         } finally {
             // 改进点，只能删除属于自己的key，不能删除别人的
             if (lock.isLocked() && lock.isHeldByCurrentThread()) {
@@ -214,7 +214,6 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
             }
         }
 
-        return Boolean.FALSE;
     }
 
     private void delOrderZsetAndHash(Long driverId, Long orderId) {
@@ -316,6 +315,7 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
         OrderMonitor orderMonitor = new OrderMonitor();
         orderMonitor.setOrderId(startDriveForm.getOrderId());
         orderMonitorService.saveOrderMonitor(orderMonitor);
+
         return Boolean.TRUE;
     }
 
@@ -434,7 +434,7 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
         // 1 根据订单编号查询，判断订单状态
         LambdaQueryWrapper<OrderInfo> wrapper = new LambdaQueryWrapper<>();
         wrapper
-                .select(OrderInfo::getStatus,BaseEntity::getId)
+                .select(OrderInfo::getStatus, BaseEntity::getId)
                 .eq(OrderInfo::getOrderNo, orderNo);
         OrderInfo orderInfo = baseMapper.selectOne(wrapper);
         if (orderInfo == null || Objects.equals(orderInfo.getStatus(), OrderStatus.PAID.getStatus())) {
@@ -458,6 +458,30 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
     public OrderRewardVo getOrderRewardFee(String orderNo) {
         OrderRewardVo orderRewardVo = baseMapper.getOrderRewardFee(orderNo);
         return orderRewardVo;
+    }
+
+    @Override
+    public Boolean customerCancelNoAcceptOrder(Long customerId, Long orderId) {
+        LambdaUpdateWrapper<OrderInfo> eq = new LambdaUpdateWrapper<OrderInfo>()
+                .set(OrderInfo::getStatus, OrderStatus.CUSTOMER_CANCEL_ORDER.getStatus())
+                .eq(BaseEntity::getId, orderId)
+                .eq(OrderInfo::getCustomerId, customerId);
+        boolean isSuccess = update(eq);
+        if (!isSuccess) {
+            throw new GuiguException(ResultCodeEnum.UPDATE_ERROR);
+        }
+        stringRedisTemplate.delete(ORDER_ACCEPT_MARK + orderId);
+        return Boolean.TRUE;
+    }
+
+    @Override
+    public Boolean isStartDrive(Long driverId, Long orderId) {
+        LambdaUpdateWrapper<OrderInfo> eq = new LambdaUpdateWrapper<OrderInfo>()
+                .eq(BaseEntity::getId, orderId)
+                .eq(OrderInfo::getDriverId, driverId)
+                .eq(OrderInfo::getStatus, OrderStatus.START_SERVICE.getStatus());
+
+        return count(eq) == 1;
     }
 
     @Override

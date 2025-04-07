@@ -39,6 +39,9 @@ local orderId = ARGV[1]
 local driverId = ARGV[2]
 local driver_order_id_zset = "driver:zet:orders:" .. driverId
 local driver_order_info_hash = "driver:hash:orders:" .. driverId
+local ORDER_ACCEPT_MARK = "o:a:m:" .. orderId
+-- 符合订单条件的司机
+redis.call('SADD', ORDER_ACCEPT_MARK, driverId)
 redis.call("ZADD", driver_order_id_zset, tonumber(ARGV[3]), orderId)
 redis.call("HSET", driver_order_info_hash, orderId, ARGV[4])
 redis.call('EXPIRE', driver_order_id_zset, ARGV[5])
