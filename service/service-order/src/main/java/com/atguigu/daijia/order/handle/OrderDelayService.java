@@ -9,6 +9,7 @@ import org.redisson.api.RBlockingQueue;
 import org.redisson.api.RDelayedQueue;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.TimeUnit;
@@ -19,16 +20,18 @@ public class OrderDelayService {
     private final RBlockingQueue<String> orderQueue;
     private final RDelayedQueue<String> delayedQueue;
 
-    private final OrderInfoService orderInfoService;
+    private final   OrderInfoService orderInfoService;
+
 
     @Autowired
-    public OrderDelayService(RedissonClient redissonClient, OrderInfoService orderInfoService) {
+    public OrderDelayService(RedissonClient redissonClient,@Lazy OrderInfoService orderInfoService) {
         // 1 创建队列
         this.orderQueue = redissonClient.getBlockingQueue(RedisConstant.ORDER_BLOCKED_QUEUE);
         // 2 把创建队列放到延迟队列里面
         this.delayedQueue = redissonClient.getDelayedQueue(orderQueue);
 
         this.orderInfoService = orderInfoService;
+
     }
 
     /**

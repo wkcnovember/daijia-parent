@@ -52,7 +52,7 @@ public class RedisConstant {
     public static final long ROB_NEW_ORDER_LOCK_LEASE_TIME = 1;
 
     //优惠券信息
-    public static final String COUPON_INFO = "coupon:info:";
+    public static final String COUPON_INFO = "c:i:";
 
     //优惠券分布式锁
     public static final String COUPON_LOCK = "coupon:lock:";

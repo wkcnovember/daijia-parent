@@ -465,6 +465,7 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
         return orderRewardVo;
     }
 
+    // todo 判断状态
     @Override
     public Boolean customerCancelNoAcceptOrder(Long customerId, Long orderId) {
         LambdaUpdateWrapper<OrderInfo> eq = new LambdaUpdateWrapper<OrderInfo>()
@@ -493,7 +494,7 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
                 return;
         }
         // 修改订单状态：取消状态
-        orderInfo.setStatus(OrderStatus.ORDER_TIMEOUT.getStatus());
+        orderInfo.setStatus(-1);
         baseMapper.updateById(orderInfo);
 
         //删除接单标识

@@ -7,7 +7,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 import java.math.BigDecimal;
-import java.util.Date;
+import java.time.LocalDateTime;
 
 @Data
 @Schema(description = "CouponInfo")
@@ -52,9 +52,13 @@ public class CouponInfo extends BaseEntity {
 	@TableField("receive_count")
 	private Integer receiveCount;
 
+
+	@Schema(description = "活动开始时间")
+	@TableField("start_time")
+	private LocalDateTime startTime;
     @Schema(description = "过期时间")
 	@TableField("expire_time")
-	private Date expireTime;
+	private LocalDateTime expireTime;
 
     @Schema(description = "优惠券描述")
 	@TableField("description")
