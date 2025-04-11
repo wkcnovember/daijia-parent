@@ -1,10 +1,15 @@
 spring:
   data:
-
     redis:
       lettuce:
         pool:
-          max-active: 200
+          max-active: 800       # 最大连接数（根据压测调整）
+          max-idle: 400         # 最大空闲连接
+          min-idle: 100         # 最小空闲连接
+          max-wait: 50ms        # 连接等待超时时间
+          time-between-eviction-runs: 30s # 空闲连接检测间隔
+        shutdown-timeout: 5s
+      timeout: 100ms            # 命令执行超时
 
   application:
     name: service-coupon

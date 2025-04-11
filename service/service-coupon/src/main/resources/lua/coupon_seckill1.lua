@@ -25,26 +25,21 @@ local couponData = redis.call('HMGET', couponKey,
 )
 
 -- 1. 检查优惠券基本信息
-if not couponData or #couponData == 0 then
+if not couponData[1]  then
     return { -1, '优惠券不存在' }
 end
 
 
-
-
-
-
 -- 2. 检查状态
 local status = tonumber(couponData[2])
-if status ~= '1' then
-    return { -2, '优惠券不可用' }
+if status ~= 1 then
+    return { -2, '优惠券不可用' .. status }
 end
 
 -- 3. 检查时间有效性
 local now = tonumber(nowTime)
-local timeStamps = redis.call('HMGET', couponKey, 'startTimeStamp', 'expireTimeStamp')
-local startTime = tonumber(timeStamps[1]) or 0
-local expireTime = tonumber(timeStamps[2]) or 0
+local startTime = tonumber(couponData[3])
+local expireTime = tonumber(couponData[4])
 if now < startTime then
     return { -3, '活动未开始' }
 end
@@ -53,9 +48,10 @@ if now >= expireTime then
     return { -4, '活动已结束' }
 end
 
+
 -- 4. 检查限领
 -- 4.1 每人限领张数，0-不限制 1-限领1张 2-限领2张
-local limit = tonumber(redis.call('HGET', couponKey, 'perLimit')) or 0
+local limit = tonumber(couponData[5]) or 0
 
 if limit > 0 then
     local received = tonumber(redis.call('GET', userKey)) or 0
@@ -64,47 +60,59 @@ if limit > 0 then
     end
 end
 
+-- 5. 检查库存
 
--- 5.0 无库存限制
-local publishCount = tonumber(redis.call('HGET', couponKey, 'publishCount')) or -1
-if publishCount == -1 then return { -7, '库存配置错误' } end
-
-
-
+-- 5.1 无库存限制
+local publishCount = tonumber(couponData[6])
+local receiveCount = tonumber(couponData[8])
 if publishCount == 0 then
+
     --  记录用户领取
     redis.call('INCR', userKey)
     -- 假设领取记录比优惠券晚1天过期
-    redis.call('EXPIREAT', userKey,expireTime + 86400)
+    redis.call('EXPIREAT', userKey, expireTime + 86400)
     return { 1, '领取成功' }
 end
 
--- 5.1 尝试从各库存分段扣减
-local segmentCount = tonumber(redis.call('HGET', couponKey, 'segmentCount'))
-local stockKeyIndex = 0 -- 库存key起始索引
+
+if publishCount > 0 and publishCount == receiveCount then
+    return { -6, '库存不足' }
+end
+
+
+
+
+
+local segmentCount = tonumber(couponData[7])
+-- 6. 分段库存扣减
+-- 使用随机选择分段开始点，避免热点问题
+local startSeg = math.random(0, segmentCount - 1)
 local acquired = false
 
-for i = 1, segmentCount do
-    local stockKey = segKey .. stockKeyIndex
+for i = 0, segmentCount - 1 do
+    local currentSeg = (startSeg + i) % segmentCount
+    local stockKey = segKey .. currentSeg
     local stock = tonumber(redis.call('GET', stockKey)) or 0
 
-    if stock and stock > 0 then
-        redis.call('DECR', stockKey)
-        acquired = true
-        break
+    if stock > 0 then
+        -- 使用原子性操作检查并扣减
+        if redis.call('DECR', stockKey) >= 0 then
+            acquired = true
+            break
+        else
+            -- 如果扣减后小于0，回滚
+            redis.call('INCR', stockKey)
+        end
     end
-
-    stockKeyIndex = stockKeyIndex + 1
 end
 
 if not acquired then
     return { -6, '库存不足' }
 end
 
--- 6. 记录用户领取
---  记录用户领取
+-- 7. 更新领取记录
 redis.call('INCR', userKey)
--- 假设领取记录比优惠券晚1天过期
-redis.call('EXPIREAT', userKey,expireTime + 86400)
+redis.call('EXPIREAT', userKey, expireTime + 86400)
+redis.call('HINCRBY', couponKey, 'receiveCount', 1)
 
 return { 1, '领取成功' }

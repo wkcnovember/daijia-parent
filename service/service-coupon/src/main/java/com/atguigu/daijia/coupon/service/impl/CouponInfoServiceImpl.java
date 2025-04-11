@@ -31,6 +31,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.MessageBuilder;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
@@ -117,6 +118,8 @@ public class CouponInfoServiceImpl extends ServiceImpl<CouponInfoMapper, CouponI
      * @param couponId
      */
 
+
+    @Async("sharedThreadPool")
     public void asyncUpdateDb(Long customerId, Long couponId) {
 
         CouponInfoDto couponInfoDto = new CouponInfoDto();

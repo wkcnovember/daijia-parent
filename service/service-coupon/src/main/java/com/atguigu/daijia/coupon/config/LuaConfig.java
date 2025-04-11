@@ -15,7 +15,7 @@ public class LuaConfig {
     public DefaultRedisScript<List> couponSecKill() {
         DefaultRedisScript<List> script = new DefaultRedisScript<>();
         script.setScriptSource(new ResourceScriptSource(
-                new ClassPathResource("lua/coupon_seckill.lua")));
+                new ClassPathResource("lua/coupon_seckill1.lua")));
         script.setResultType(List.class); // 返回值类型
         return script;
     }

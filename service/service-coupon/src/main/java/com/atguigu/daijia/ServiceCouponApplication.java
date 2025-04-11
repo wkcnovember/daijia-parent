@@ -1,5 +1,6 @@
 package com.atguigu.daijia;
 
+import com.atguigu.daijia.common.anno.EnableMyThreadPoolConfig;
 import com.atguigu.daijia.common.anno.EnableRedisson;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -12,6 +13,7 @@ import org.springframework.scheduling.annotation.EnableAsync;
 @EnableFeignClients
 @EnableRedisson
 @EnableAsync
+@EnableMyThreadPoolConfig
 public class ServiceCouponApplication {
 
     public static void main(String[] args) {
