@@ -2,8 +2,11 @@ package com.atguigu.daijia.model.convert.coupon;
 
 import com.atguigu.daijia.model.convert.GlobalMapperConfig;
 import com.atguigu.daijia.model.entity.coupon.CouponInfo;
+import com.atguigu.daijia.model.vo.coupon.AvailableCouponVo;
 import com.atguigu.daijia.model.vo.coupon.CouponInfoVo;
+import com.atguigu.daijia.model.vo.coupon.NoUseCouponVo;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 
 /**
  * @Author 柯佳元
@@ -15,4 +18,7 @@ import org.mapstruct.Mapper;
 public interface CouponInfoConvert {
 
     CouponInfoVo toCouponInfoVo(CouponInfo couponInfo);
+
+    @Mapping(target = "couponId",source = "id")
+    AvailableCouponVo toAvailableCouponVo(NoUseCouponVo noUseCouponVo);
 }

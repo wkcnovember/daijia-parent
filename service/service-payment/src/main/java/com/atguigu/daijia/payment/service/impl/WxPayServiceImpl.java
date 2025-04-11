@@ -6,6 +6,7 @@ import com.atguigu.daijia.common.result.ResultCodeEnum;
 import com.atguigu.daijia.common.service.RabbitService;
 import com.atguigu.daijia.driver.client.DriverAccountFeignClient;
 import com.atguigu.daijia.model.convert.payment.PaymentInfoConvert;
+import com.atguigu.daijia.model.entity.base.BaseEntity;
 import com.atguigu.daijia.model.entity.payment.PaymentInfo;
 import com.atguigu.daijia.model.enums.order.TradeType;
 import com.atguigu.daijia.model.enums.payment.PayStatus;
@@ -109,6 +110,7 @@ public class WxPayServiceImpl implements WxPayService {
         }
     }
 
+
     @Override
     public Boolean queryPayStatus(String orderNo) {
         // 1.假如查询微信已经支付成功，调用其他方法实现支付后处理逻辑
@@ -188,16 +190,19 @@ public class WxPayServiceImpl implements WxPayService {
         // 1.更新支付记录,将状态修改为已支付
         LambdaQueryWrapper<PaymentInfo> wrapper = new LambdaQueryWrapper<>();
         wrapper
-                .select(PaymentInfo::getPaymentStatus)
+                .select(PaymentInfo::getPaymentStatus, BaseEntity::getId)
                 .eq(PaymentInfo::getOrderNo, orderNo);
         PaymentInfo paymentInfo = paymentInfoMapper.selectOne(wrapper);
+        if(paymentInfo == null) {
+            log.error("处理支付有异常, ==>orderNo={} ==>未找到PaymentInfo  ",orderNo);
+            return;
+        }
         // 已经支付,不进行处理~
         if (Objects.equals(PayStatus.PAID.getStatus(), paymentInfo.getPaymentStatus())) {
             return;
         }
         paymentInfo.setPaymentStatus(PayStatus.PAID.getStatus());
         // 以下 模拟微信支付
-        paymentInfo.setOrderNo(orderNo);
         paymentInfo.setTransactionId(System.currentTimeMillis() + "");
         paymentInfo.setCallbackTime(new Date());
         paymentInfo.setCallbackContent("回调信息~");
@@ -233,6 +238,17 @@ public class WxPayServiceImpl implements WxPayService {
             transferForm.setDriverId(orderRewardVo.getDriverId());
             driverAccountFeignClient.transfer(transferForm);
         }
+
+        //分账处理
+        // OrderProfitsharingVo orderProfitsharingVo = orderInfoFeignClient
+        //         .getOrderProfitsharing(orderRewardVo.getOrderId()).getData();
+        // //封装分账参数对象
+        // ProfitsharingForm profitsharingForm = new ProfitsharingForm();
+        // profitsharingForm.setOrderNo(orderNo);
+        // profitsharingForm.setAmount(orderProfitsharingVo.getDriverIncome());
+        // profitsharingForm.setDriverId(orderRewardVo.getDriverId());
+        // //分账有延迟，支付成功后最少2分钟执行分账申请
+        // rabbitService.sendDelayMessage(MqConst.EXCHANGE_PROFITSHARING, MqConst.ROUTING_PROFITSHARING, JSON.toJSONString(profitsharingForm), SystemConstant.PROFITSHARING_DELAY_TIME);
 
     }
 }

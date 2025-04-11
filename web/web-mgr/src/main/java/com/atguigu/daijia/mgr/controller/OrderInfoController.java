@@ -10,9 +10,8 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "位置API接口管理")
 @RestController
 @RequestMapping(value="/order/info")
-@SuppressWarnings({"unchecked", "rawtypes"})
 public class OrderInfoController {
-	
+
 	@Autowired
 	private OrderInfoService orderInfoService;
 

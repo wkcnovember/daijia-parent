@@ -3,12 +3,17 @@ package com.atguigu.daijia.customer.service.impl;
 import com.atguigu.daijia.coupon.client.CouponFeignClient;
 import com.atguigu.daijia.customer.service.CouponService;
 import com.atguigu.daijia.model.vo.base.PageVo;
+import com.atguigu.daijia.model.vo.coupon.AvailableCouponVo;
 import com.atguigu.daijia.model.vo.coupon.NoReceiveCouponVo;
 import com.atguigu.daijia.model.vo.coupon.NoUseCouponVo;
 import com.atguigu.daijia.model.vo.coupon.UsedCouponVo;
+import com.atguigu.daijia.model.vo.order.OrderBillVo;
+import com.atguigu.daijia.order.client.OrderInfoFeignClient;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Slf4j
 @Service
@@ -16,6 +21,9 @@ public class CouponServiceImpl implements CouponService {
 
     @Resource
     private CouponFeignClient couponFeignClient;
+
+    @Resource
+    private OrderInfoFeignClient orderInfoFeignClient;
 
 
     @Override
@@ -42,5 +50,13 @@ public class CouponServiceImpl implements CouponService {
     @Override
     public Boolean receive(Long customerId, Long couponId) {
         return couponFeignClient.receive(customerId, couponId).throwOnFailureOrDataIsNull().getData();
+    }
+
+    @Override
+    public List<AvailableCouponVo> findAvailableCoupon(Long customerId, Long orderId) {
+        OrderBillVo orderBillVo = orderInfoFeignClient.getOrderBillInfo(orderId).throwOnFailureOrDataIsNull().getData();
+        return couponFeignClient.findAvailableCoupon(customerId, orderBillVo.getPayAmount())
+                .throwOnFailureOrDataIsNull()
+                .getData();
     }
 }

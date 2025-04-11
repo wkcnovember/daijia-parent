@@ -29,5 +29,9 @@ public enum OrderStatus {
         this.comment = comment;
     }
 
+    public static boolean hasBill(Integer status) {
+        return status >= UNPAID.getStatus() && status <= FINISH.getStatus();
+    }
+
 
 }

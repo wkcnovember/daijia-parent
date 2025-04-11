@@ -17,31 +17,30 @@
 
      <select id="findNoReceivePage" resultType="com.atguigu.daijia.model.vo.coupon.NoReceiveCouponVo">
          -- 两表联查
-         SELECT
-         info.id,
-         info.coupon_type,
-         info.`name`,
-         info.amount,
-         info.discount,
-         info.condition_amount,
-         info.publish_count,
-         info.per_limit,
-         info.expire_time,
-         info.description
-         FROM
-         coupon_info info
-         LEFT JOIN ( SELECT coupon_id, customer_id, count( customer_id ) cnt FROM customer_coupon WHERE customer_id = #{customerId} AND is_deleted = 0 GROUP BY coupon_id, customer_id ) cus_coup ON cus_coup.coupon_id = info.id
-         WHERE
-
-         info.start_time <![CDATA[<=]]> now()
-         AND info.STATUS = 1
-         AND ( info.publish_count = 0 OR info.receive_count &lt; info.publish_count )
-         AND (
-         info.per_limit = 0 OR info.per_limit > cus_coup.cnt OR cus_coup.cnt IS NULL )
-         AND info.expire_time >= now()
-         AND info.is_deleted = 0
-         ORDER BY
-         info.id DESC
+         SELECT info.id,
+                info.coupon_type,
+                info.`name`,
+                info.amount,
+                info.discount,
+                info.condition_amount,
+                info.publish_count,
+                info.per_limit,
+                info.expire_time,
+                info.description
+         FROM coupon_info info
+                  LEFT JOIN (SELECT customer_id, coupon_id, count(coupon_id) cnt
+                             FROM customer_coupon
+                             WHERE customer_id =
+                                   #{customerId}
+                               AND is_deleted = 0
+                             GROUP BY customer_id, coupon_id) cus_coup ON cus_coup.coupon_id = info.id
+         WHERE info.STATUS = 1
+           AND (info.publish_count = 0 OR info.receive_count &lt; info.publish_count)
+           AND (
+                     info.per_limit = 0 OR info.per_limit > cus_coup.cnt OR cus_coup.cnt IS NULL)
+           AND info.expire_time >= now()
+           AND info.is_deleted = 0
+         ORDER BY info.id DESC
      </select>
 
 	<select id="findNoUsePage" resultType="com.atguigu.daijia.model.vo.coupon.NoUseCouponVo">
@@ -94,35 +93,37 @@
 	</update>
 
 	<update id="updateReceiveCountByLimit">
-		update coupon_info set receive_count = receive_count + 1 where id = #{id} and receive_count &lt; publish_count
+		update coupon_info set receive_count = receive_count + 1 where id = #{couponId} and receive_count &lt; publish_count
 	</update>
 
 	<select id="findNoUseList" resultType="com.atguigu.daijia.model.vo.coupon.NoUseCouponVo">
-		select
-			info.id,
-			info.coupon_type,
-			info.name,
-			info.amount,
-			info.discount,
-			info.condition_amount,
-			info.publish_count,
-			info.per_limit,
-			info.expire_time,
-			info.description,
-
-			cstr.id as customerCouponId,
-			cstr.receive_time
-		from coupon_info info
-				 inner join customer_coupon cstr on cstr.coupon_id = info.id
-		where
-			cstr.customer_id = #{customerId}
-		  and cstr.status = 1
-		  and cstr.expire_time > now()
-		order by cstr.id desc
+        select info.id,
+               info.coupon_type,
+               info.`name`,
+               info.amount,
+               info.discount,
+               info.condition_amount,
+               info.publish_count,
+               info.per_limit,
+               info.expire_time,
+               info.description,
+               cstr.id as customerCouponId,
+               cstr.receive_time
+        from coupon_info info
+                 inner join customer_coupon cstr on cstr.coupon_id = info.id
+        where cstr.customer_id = #{customerId}
+          and cstr.`status` = 1
+          and cstr.expire_time >= now()
+          AND info.is_deleted = 0
+          AND cstr.is_deleted = 0
+        order by cstr.id desc
 	</select>
 
 	<update id="updateUseCount">
 		update coupon_info set use_count = use_count + 1 where id = #{id}
 	</update>
+    <update id="incrReceiveCount">
+        UPDATE coupon_info SET receive_count = receive_count + 1 WHERE id = #{couponId}
+    </update>
 </mapper>
 

@@ -35,7 +35,7 @@ public class DriverAccountServiceImpl extends ServiceImpl<DriverAccountMapper, D
             return Boolean.TRUE;
         }
 
-        // 2 添加奖励到司机账户表
+        // 2 将钱到司机账户表
         int i = baseMapper.add(transferForm.getDriverId(), transferForm.getAmount());
         if(i < 1) {
             log.error("添加奖励到司机账户={}失败",transferForm.getDriverId());

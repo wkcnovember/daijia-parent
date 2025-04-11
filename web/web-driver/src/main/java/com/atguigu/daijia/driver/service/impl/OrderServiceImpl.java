@@ -129,7 +129,7 @@ public class OrderServiceImpl implements OrderService {
 
         CompletableFuture<Void> billAndProfitFuture = CompletableFuture.completedFuture(null);
 
-        if (orderInfo.getStatus() >= OrderStatus.END_SERVICE.getStatus()) {
+        if (orderInfo.getStatus() >= OrderStatus.END_SERVICE.getStatus() && orderInfo.getStatus() <= OrderStatus.FINISH.getStatus()) {
             // 并行获取账单和分账信息
             billAndProfitFuture = CompletableFuture.allOf(
                     CompletableFuture.supplyAsync(() ->

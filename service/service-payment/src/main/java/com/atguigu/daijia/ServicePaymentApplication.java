@@ -9,7 +9,7 @@ import org.springframework.scheduling.annotation.EnableAsync;
 @SpringBootApplication
 @EnableDiscoveryClient
 @EnableFeignClients
-@EnableAsync
+@EnableAsync  // 模拟支付成功异步回调
 public class ServicePaymentApplication {
 
     public static void main(String[] args) {

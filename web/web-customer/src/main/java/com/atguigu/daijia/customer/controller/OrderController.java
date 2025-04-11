@@ -79,7 +79,7 @@ public class OrderController {
     @Operation(summary = "获取订单and账单信息")
     @KjyLogin
     @GetMapping("/getOrderInfo/{orderId}")
-    public Result<OrderInfoVo> getOrderInfo(@PathVariable Long orderId) {
+    public Result<OrderInfoVo> getOrderInfo(@PathVariable("orderId") Long orderId) {
         Long customerId = AuthContextHolder.getUserId();
         return Result.ok(orderService.getOrderInfo(orderId, customerId));
     }

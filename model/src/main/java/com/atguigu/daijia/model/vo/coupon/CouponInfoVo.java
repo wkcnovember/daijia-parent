@@ -3,9 +3,11 @@ package com.atguigu.daijia.model.vo.coupon;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 
 /**
  * @Author 柯佳元
@@ -17,6 +19,7 @@ import java.time.LocalDateTime;
 @Data
 public class CouponInfoVo implements Serializable {
     private Long id;
+    @Serial
     private static final long serialVersionUID = 1L;
 
     @Schema(description = "优惠卷类型 1 现金券 2 折扣")
@@ -46,15 +49,35 @@ public class CouponInfoVo implements Serializable {
     @Schema(description = "领取数量")
     private Integer receiveCount;
 
-
     @Schema(description = "活动开始时间")
     private LocalDateTime startTime;
     @Schema(description = "过期时间")
     private LocalDateTime expireTime;
+
+
+    @Schema(description = "活动开始时间戳")
+    private long startTimeStamp;
+    @Schema(description = "过期时间戳")
+    private long expireTimeStamp;
+
 
     @Schema(description = "优惠券描述")
     private String description;
 
     @Schema(description = "状态[0-未发布，1-已发布， -1-已过期]")
     private Integer status;
+
+
+    @Schema(description = "分段数量")
+    private Integer segmentCount;
+
+    public long getStartTimeStamp() {
+        return startTime.toEpochSecond(ZoneOffset.UTC);
+    }
+
+
+    public long getExpireTimeStamp() {
+        return expireTime.toEpochSecond(ZoneOffset.UTC);
+    }
+
 }

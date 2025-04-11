@@ -50,6 +50,7 @@ public enum ResultCodeEnum {
     FACE_ERROR( 250, "当日未进行人脸识别"),
 
     COUPON_EXPIRE( 250, "优惠券已过期"),
+    COUPON_PUBLISH_ERROR( 250, "优惠券已过期,发布失败!"),
     COUPON_LESS( 250, "优惠券库存不足"),
     COUPON_USER_LIMIT( 250, "超出领取数量"),
     REMOTE_TIMEOUT(500,"获取数据超时"), SYSTEM_ERROR(500,"系统异常" );

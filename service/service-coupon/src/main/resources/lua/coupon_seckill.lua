@@ -6,56 +6,84 @@
 -- KEYS[1]: 优惠券信息key
 -- KEYS[2...N]: 库存分段key (c:s:{couponId}:{segment})
 -- KEYS[N+1]: 用户领取key (user:coupons:{userId}:{couponId})
--- KEYS[N+2]: 限领key (coupon:limit:{couponId})
 -- ARGV[1]: 用户ID
 -- ARGV[2]: 优惠券ID
 -- ARGV[3]: 当前时间戳
 -- ARGV[4]: 库存分段数量
 
+-- 优惠券的key
+local couponKey = "c:" .. ARGV[1]
+
+-- 用户id
+local userKey = "u:m:" .. ARGV[2]
+
+-- 库存分段
+local segKey = "c:s:" .. ARGV[1] .. ":"
+
+-- 当前时间
+local nowTime = ARGV[3]
+
 -- 1. 检查优惠券基本信息
-local coupon = redis.call('HGETALL', KEYS[1])
+local coupon = redis.call('HGETALL', couponKey)
 if not coupon or #coupon == 0 then
-    return {-1, '优惠券不存在'}
+    return { -1, '优惠券不存在' }
 end
 
 -- 2. 检查状态
-local status = redis.call('HGET', KEYS[1], 'status')
+local status = redis.call('HGET', couponKey, 'status')
 if status ~= '1' then
-    return {-2, '优惠券不可用'}
+    return { -2, '优惠券不可用' }
 end
 
 -- 3. 检查时间有效性
-local now = tonumber(ARGV[3])
-local startTime = tonumber(redis.call('HGET', KEYS[1], 'startTime')) or 0
-local expireTime = tonumber(redis.call('HGET', KEYS[1], 'expireTime')) or 0
-
+local now = tonumber(nowTime)
+local startTime = tonumber(redis.call('HGET', couponKey, 'startTimeStamp')) or 0
+local expireTime = tonumber(redis.call('HGET', couponKey, 'expireTimeStamp')) or 0
+redis.log(redis.LOG_DEBUG, "获取的值开始时间: " .. tostring(startTime))
 if now < startTime then
-    return {-3, '活动未开始'}
+    return { -3, '活动未开始' }
 end
 
 if now >= expireTime then
-    return {-4, '活动已结束'}
+    return { -4, '活动已结束' }
 end
 
 -- 4. 检查限领
-local limit = tonumber(redis.call('GET', KEYS[#KEYS])) or 0
+-- 4.1 每人限领张数，0-不限制 1-限领1张 2-限领2张
+local limit = tonumber(redis.call('HGET', couponKey, 'perLimit')) or 0
+
 if limit > 0 then
-    local received = tonumber(redis.call('GET', KEYS[#KEYS-1])) or 0
+    local received = tonumber(redis.call('GET', userKey)) or 0
     if received >= limit then
-        return {-5, '已达到领取限制'}
+        return { -5, '已达到领取限制' }
     end
 end
 
--- 5. 尝试从各库存分段扣减
-local segmentCount = tonumber(ARGV[4])
-local stockKeyIndex = 2 -- 库存key起始索引
+
+-- 5.0 无库存限制
+local publishCount = tonumber(redis.call('HGET', couponKey, 'publishCount')) or -1
+if publishCount == -1 then return { -7, '库存配置错误' } end
+
+
+
+if publishCount == 0 then
+    --  记录用户领取
+    redis.call('INCR', userKey)
+    -- 假设领取记录比优惠券晚1天过期
+    redis.call('EXPIREAT', userKey,expireTime + 86400)
+    return { 1, '领取成功' }
+end
+
+-- 5.1 尝试从各库存分段扣减
+local segmentCount = tonumber(redis.call('HGET', couponKey, 'segmentCount'))
+local stockKeyIndex = 0 -- 库存key起始索引
 local acquired = false
 
 for i = 1, segmentCount do
-    local stockKey = KEYS[stockKeyIndex]
+    local stockKey = segKey .. stockKeyIndex
     local stock = tonumber(redis.call('GET', stockKey)) or 0
 
-    if stock > 0 then
+    if stock and stock > 0 then
         redis.call('DECR', stockKey)
         acquired = true
         break
@@ -65,11 +93,13 @@ for i = 1, segmentCount do
 end
 
 if not acquired then
-    return {-6, '库存不足'}
+    return { -6, '库存不足' }
 end
 
 -- 6. 记录用户领取
-redis.call('INCR', KEYS[#KEYS-1])
-redis.call('EXPIREAT', KEYS[#KEYS-1], expireTime)
+--  记录用户领取
+redis.call('INCR', userKey)
+-- 假设领取记录比优惠券晚1天过期
+redis.call('EXPIREAT', userKey,expireTime + 86400)
 
-return {1, '领取成功'}
+return { 1, '领取成功' }

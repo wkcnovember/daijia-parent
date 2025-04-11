@@ -7,7 +7,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 import java.time.LocalDateTime;
-import java.util.Date;
 
 @Data
 @Schema(description = "CustomerCoupon")
@@ -30,11 +29,11 @@ public class CustomerCoupon extends BaseEntity {
 
     @Schema(description = "领取时间")
 	@TableField("receive_time")
-	private Date receiveTime;
+	private LocalDateTime receiveTime;
 
     @Schema(description = "使用时间")
 	@TableField("used_time")
-	private Date usedTime;
+	private LocalDateTime usedTime;
 
 	@Schema(description = "订单id")
 	@TableField("order_id")

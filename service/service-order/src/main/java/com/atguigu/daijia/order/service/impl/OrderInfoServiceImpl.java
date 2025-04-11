@@ -37,6 +37,7 @@ import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.Date;
@@ -435,6 +436,7 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
     }
 
     @Override
+    @Transactional
     public Boolean updateOrderPayStatus(String orderNo) {
         // 1 根据订单编号查询，判断订单状态
         LambdaQueryWrapper<OrderInfo> wrapper = new LambdaQueryWrapper<>();
@@ -494,7 +496,7 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
                 return;
         }
         // 修改订单状态：取消状态
-        orderInfo.setStatus(-1);
+        orderInfo.setStatus(OrderStatus.CANCEL_ORDER.getStatus());
         baseMapper.updateById(orderInfo);
 
         //删除接单标识
@@ -510,6 +512,16 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
                 .eq(OrderInfo::getStatus, OrderStatus.START_SERVICE.getStatus());
 
         return count(eq) == 1;
+    }
+
+    @Transactional
+    @Override
+    public Boolean updateCouponAmount(Long orderId, BigDecimal couponAmount) {
+        int row = orderBillMapper.updateCouponAmount(orderId, couponAmount);
+        if(row != 1) {
+            throw new GuiguException(ResultCodeEnum.UPDATE_ERROR);
+        }
+        return Boolean.TRUE;
     }
 
     @Override

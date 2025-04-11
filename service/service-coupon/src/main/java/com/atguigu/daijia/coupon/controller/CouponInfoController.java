@@ -1,9 +1,12 @@
 package com.atguigu.daijia.coupon.controller;
 
 import com.atguigu.daijia.common.result.Result;
+import com.atguigu.daijia.coupon.config.LuaResult;
 import com.atguigu.daijia.coupon.service.CouponInfoService;
 import com.atguigu.daijia.model.entity.coupon.CouponInfo;
+import com.atguigu.daijia.model.form.coupon.UseCouponForm;
 import com.atguigu.daijia.model.vo.base.PageVo;
+import com.atguigu.daijia.model.vo.coupon.AvailableCouponVo;
 import com.atguigu.daijia.model.vo.coupon.NoReceiveCouponVo;
 import com.atguigu.daijia.model.vo.coupon.NoUseCouponVo;
 import com.atguigu.daijia.model.vo.coupon.UsedCouponVo;
@@ -16,6 +19,9 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
+import java.math.BigDecimal;
+import java.util.List;
 
 
 @Tag(name = "优惠券活动接口管理")
@@ -70,8 +76,6 @@ public class CouponInfoController {
     }
 
 
-
-
     @Operation(summary = "模拟管理员发布优惠券预热缓存")
     @PutMapping("/publish/{couponId}")
     public Result<Boolean> publish(@PathVariable("couponId") @NotNull @Positive Long couponId
@@ -81,9 +85,25 @@ public class CouponInfoController {
 
     @Operation(summary = "领取优惠券")
     @GetMapping("/receive/{customerId}/{couponId}")
-    public Result<Boolean> receive(@PathVariable("customerId") @NotNull @Positive Long customerId,
-                                   @PathVariable("couponId") @NotNull @Positive Long couponId) {
+    public Result<LuaResult> receive(@PathVariable("customerId") @NotNull @Positive Long customerId,
+                                     @PathVariable("couponId") @NotNull @Positive Long couponId) {
         return Result.ok(couponInfoService.receive(customerId, couponId));
+    }
+
+
+
+
+    @Operation(summary = "获取未使用的最佳优惠券信息")
+    @GetMapping("/findAvailableCoupon/{customerId}/{orderAmount}")
+    public Result<List<AvailableCouponVo>> findAvailableCoupon(@PathVariable("customerId") @NotNull @Positive Long customerId,
+                                                               @PathVariable("orderAmount") @NotNull @Positive BigDecimal orderAmount) {
+        return Result.ok(couponInfoService.findAvailableCoupon(customerId, orderAmount));
+    }
+
+    @Operation(summary = "使用优惠券")
+    @PostMapping("/useCoupon")
+    public Result<BigDecimal> useCoupon(@RequestBody @Validated UseCouponForm useCouponForm) {
+        return Result.ok(couponInfoService.useCoupon(useCouponForm));
     }
 
 }

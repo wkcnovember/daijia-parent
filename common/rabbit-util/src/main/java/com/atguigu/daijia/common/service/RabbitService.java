@@ -13,11 +13,10 @@ public class RabbitService {
     private RabbitTemplate rabbitTemplate;
 
     //发送消息
-    public boolean sendMessage(String exchange,
+    public void sendMessage(String exchange,
                                String routingKey,
                                Message message) {
         rabbitTemplate.convertAndSend(exchange,routingKey,message);
-        return true;
     }
 
 

@@ -10,16 +10,28 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.util.List;
+
 @Mapper
 public interface CouponInfoMapper extends BaseMapper<CouponInfo> {
 
-    IPage<NoReceiveCouponVo> findNoReceivePage(@Param("pageParam") Page<CouponInfo> pageParam, @Param("customerId") Long customerId);
+    IPage<NoReceiveCouponVo> findNoReceivePage(@Param("pageParam") Page<CouponInfo> pageParam,
+                                               @Param("customerId") Long customerId);
 
-    IPage<NoUseCouponVo> findNoUsePage(@Param("pageParam") Page<CouponInfo> pageParam, @Param("customerId") Long customerId);
+    IPage<NoUseCouponVo> findNoUsePage(@Param("pageParam") Page<CouponInfo> pageParam,
+                                       @Param("customerId") Long customerId);
 
-    IPage<UsedCouponVo> findUsedPage(@Param("pageParam") Page<CouponInfo> pageParam, @Param("customerId") Long customerId);
+    IPage<UsedCouponVo> findUsedPage(@Param("pageParam") Page<CouponInfo> pageParam,
+                                     @Param("customerId") Long customerId);
 
     int updateReceiveCount(@Param("couponId") Long couponId);
 
     int updateReceiveCountByLimit(@Param("couponId") Long couponId);
+
+
+    List<NoUseCouponVo> findNoUseList(@Param("customerId") Long customerId);
+
+    int updateUseCount(@Param("id") Long id);
+
+    int incrReceiveCount(@Param("couponId") Long couponId);
 }

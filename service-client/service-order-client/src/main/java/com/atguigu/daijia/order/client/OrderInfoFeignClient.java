@@ -13,6 +13,8 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
+
 
 @FeignClient(value = "service-order", path = "/order/info")
 public interface OrderInfoFeignClient {
@@ -240,6 +242,7 @@ public interface OrderInfoFeignClient {
 
     /**
      * 是否处于开始服务状态
+     *
      * @param driverId
      * @param orderId
      * @return
@@ -259,6 +262,18 @@ public interface OrderInfoFeignClient {
     Result<Boolean> customerCancelNoAcceptOrder(@PathVariable("customerId") Long customerId,
                                                 @PathVariable("orderId") Long orderId
     );
+
+
+    /**
+     * 更新订单优惠券金额
+     *
+     * @param orderId
+     * @param couponAmount
+     * @return
+     */
+    @GetMapping("/updateCouponAmount/{orderId}/{couponAmount}")
+    Result<Boolean> updateCouponAmount(@PathVariable("orderId") Long orderId,
+                                       @PathVariable("couponAmount") BigDecimal couponAmount);
 
 
 }

@@ -4,6 +4,7 @@ import com.atguigu.daijia.common.execption.GuiguException;
 import com.atguigu.daijia.common.result.Result;
 import com.atguigu.daijia.common.result.ResultCodeEnum;
 import com.atguigu.daijia.common.util.AuthContextHolder;
+import com.atguigu.daijia.coupon.client.CouponFeignClient;
 import com.atguigu.daijia.customer.client.CustomerInfoFeignClient;
 import com.atguigu.daijia.customer.service.OrderService;
 import com.atguigu.daijia.dispatch.client.NewOrderFeignClient;
@@ -16,6 +17,7 @@ import com.atguigu.daijia.model.convert.order.OrderInfoConvert;
 import com.atguigu.daijia.model.entity.order.OrderInfo;
 import com.atguigu.daijia.model.enums.order.OrderStatus;
 import com.atguigu.daijia.model.enums.payment.PayType;
+import com.atguigu.daijia.model.form.coupon.UseCouponForm;
 import com.atguigu.daijia.model.form.customer.ExpectOrderForm;
 import com.atguigu.daijia.model.form.customer.SubmitOrderForm;
 import com.atguigu.daijia.model.form.map.CalculateDrivingLineForm;
@@ -78,6 +80,9 @@ public class OrderServiceImpl implements OrderService {
 
     @Resource
     private WxPayFeignClient wxPayFeignClient;
+
+    @Resource
+    private CouponFeignClient couponFeignClient;
 
     @Override
     public ExpectOrderVo expectOrder(ExpectOrderForm expectOrderForm) {
@@ -219,7 +224,8 @@ public class OrderServiceImpl implements OrderService {
         }
 
         // 2.账单的信息
-        if (orderInfo.getStatus() >= OrderStatus.UNPAID.getStatus()) {
+        boolean hasBill = OrderStatus.hasBill(orderInfo.getStatus());
+        if (hasBill) {
             OrderBillVo orderBillVo = orderInfoFeignClient.getOrderBillInfo(orderId).getData();
             orderInfoVo.setOrderBillVo(orderBillVo);
         }
@@ -280,6 +286,7 @@ public class OrderServiceImpl implements OrderService {
         return customerOrderPage.getData();
     }
 
+
     @Override
     public WxPrepayVo createWxPayment(CreateWxPaymentForm createWxPaymentForm) {
         // 1.获取订单支付相关信息
@@ -296,31 +303,73 @@ public class OrderServiceImpl implements OrderService {
         }, sharedThreadPool);
         // 2.获取乘客微信openId
         CompletableFuture<String> customerOpenIdFuture =
-                orderPayVoCompletableFuture.thenComposeAsync(orderPayVo -> CompletableFuture.supplyAsync(() ->
-                        customerInfoFeignClient
-                                .getCustomerOpenId(orderPayVo.getCustomerId())
-                                .throwOnFailureOrDataIsNull()
-                                .getData()), sharedThreadPool);
+                orderPayVoCompletableFuture.thenApplyAsync(orderPayVo -> customerInfoFeignClient
+                        .getCustomerOpenId(orderPayVo.getCustomerId())
+                        .throwOnFailureOrDataIsNull()
+                        .getData(), sharedThreadPool);
+
 
         // 3.获取乘客微信openId
         CompletableFuture<String> DriverOpenIdFuture =
-                orderPayVoCompletableFuture.thenComposeAsync(orderPayVo -> CompletableFuture.supplyAsync(() ->
+                orderPayVoCompletableFuture.thenApplyAsync((orderPayVo) ->
                         driverInfoFeignClient
                                 .getDriverOpenId(orderPayVo.getDriverId())
                                 .throwOnFailureOrDataIsNull()
-                                .getData()), sharedThreadPool);
+                                .getData(), sharedThreadPool);
+
+        // 4.获取并更新优惠券的信息
+        CompletableFuture<BigDecimal> couponAmountCompletableFuture =
+                orderPayVoCompletableFuture.thenApplyAsync(orderPayVo ->
+                {
+                    // 支付时选择过一次优惠券，如果支付失败或未支付，下次支付时不能再次选择，只能使用第一次选中的优惠券
+                    // （前端已控制，后端再次校验）
+                    BigDecimal couponAmount = null;
+                    if (null == orderPayVo.getCouponAmount() &&
+                            null != createWxPaymentForm.getCustomerCouponId() &&
+                            createWxPaymentForm.getCustomerCouponId() != 0) {
+                        UseCouponForm useCouponForm = new UseCouponForm();
+                        useCouponForm.setOrderId(orderPayVo.getOrderId());
+                        useCouponForm.setCustomerCouponId(createWxPaymentForm.getCustomerCouponId());
+                        useCouponForm.setOrderAmount(orderPayVo.getPayAmount());
+                        useCouponForm.setCustomerId(createWxPaymentForm.getCustomerId());
+                        couponAmount =
+                                couponFeignClient.useCoupon(useCouponForm).throwOnFailureOrDataIsNull().getData();
+                    }
+                    return couponAmount;
+                }, sharedThreadPool);
+
+
+        // 5.假如使用了优惠券,更新账单支付信息
+        CompletableFuture<BigDecimal> billUpdateCompletableFuture =
+                orderPayVoCompletableFuture.thenCombineAsync(couponAmountCompletableFuture, (orderPayVo,
+                                                                                             couponAmount) -> {
+                    BigDecimal payAmount = orderPayVo.getPayAmount();
+                    if (couponAmount != null) {
+                        Boolean isUpdate = orderInfoFeignClient.updateCouponAmount(orderPayVo.getOrderId(),
+                                couponAmount).getData();
+                        if (!isUpdate) {
+                            throw new GuiguException(ResultCodeEnum.DATA_ERROR);
+                        }
+                        // 当前支付金额 = 支付金额 - 优惠券金额
+                        payAmount = orderPayVo.getPayAmount().subtract(couponAmount);
+
+                    }
+                    return payAmount;
+                }, sharedThreadPool);
+
         // 合并所有结果
         CompletableFuture<WxPrepayVo> resultFuture = CompletableFuture.allOf(orderPayVoCompletableFuture,
-                customerOpenIdFuture, DriverOpenIdFuture).thenApplyAsync(v -> {
+                customerOpenIdFuture, DriverOpenIdFuture, couponAmountCompletableFuture, billUpdateCompletableFuture).thenApplyAsync(v -> {
             // 4.封装微信下单对象，微信支付只关注以下订单属性
             PaymentInfoForm paymentInfoForm = new PaymentInfoForm();
             String customerOpenId = customerOpenIdFuture.join();
             String driverOpenId = DriverOpenIdFuture.join();
             OrderPayVo orderPayVo = orderPayVoCompletableFuture.join();
+            BigDecimal payAmount = billUpdateCompletableFuture.join();
             paymentInfoForm.setCustomerOpenId(customerOpenId);
             paymentInfoForm.setDriverOpenId(driverOpenId);
             paymentInfoForm.setOrderNo(orderPayVo.getOrderNo());
-            paymentInfoForm.setAmount(orderPayVo.getPayAmount());
+            paymentInfoForm.setAmount(payAmount);
             paymentInfoForm.setContent(orderPayVo.getContent());
             paymentInfoForm.setPayWay(PayType.WECHAT_PAY.getType());
             return wxPayFeignClient.createWxPayment(paymentInfoForm).throwOnFailureOrDataIsNull().getData();

@@ -20,11 +20,11 @@ public class OrderDelayService {
     private final RBlockingQueue<String> orderQueue;
     private final RDelayedQueue<String> delayedQueue;
 
-    private final   OrderInfoService orderInfoService;
+    private final OrderInfoService orderInfoService;
 
 
     @Autowired
-    public OrderDelayService(RedissonClient redissonClient,@Lazy OrderInfoService orderInfoService) {
+    public OrderDelayService(RedissonClient redissonClient, @Lazy OrderInfoService orderInfoService) {
         // 1 创建队列
         this.orderQueue = redissonClient.getBlockingQueue(RedisConstant.ORDER_BLOCKED_QUEUE);
         // 2 把创建队列放到延迟队列里面
@@ -53,7 +53,7 @@ public class OrderDelayService {
                     String orderId = orderQueue.take();
                     if (StringUtils.isNotBlank(orderId)) {
                         // 处理超时订单
-                      orderInfoService.orderCancel(Long.parseLong(orderId));
+                        orderInfoService.orderCancel(Long.parseLong(orderId));
                     }
 
                 } catch (InterruptedException e) {
@@ -63,8 +63,6 @@ public class OrderDelayService {
             }
         }).start();
     }
-
-
 
 
     /**

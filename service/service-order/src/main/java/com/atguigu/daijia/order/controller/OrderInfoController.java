@@ -23,6 +23,8 @@ import jakarta.validation.groups.Default;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
+
 
 @Tag(name = "订单API接口管理")
 @RestController
@@ -57,8 +59,8 @@ public class OrderInfoController {
     @PutMapping("/customerCancelNoAcceptOrder/{customerId}/{orderId}")
     public Result<Boolean> customerCancelNoAcceptOrder(@PathVariable("customerId") @NotNull @Positive Long customerId,
                                                        @PathVariable("orderId") @NotNull @Positive Long orderId
-                                       ) {
-        return Result.ok(orderInfoService.customerCancelNoAcceptOrder(customerId,orderId));
+    ) {
+        return Result.ok(orderInfoService.customerCancelNoAcceptOrder(customerId, orderId));
     }
 
 
@@ -129,7 +131,7 @@ public class OrderInfoController {
     @PostMapping("/isStartDrive/{driverId}/{orderId}")
     public Result<Boolean> isStartDrive(@PathVariable("driverId") @NotNull @Positive Long driverId,
                                         @PathVariable("orderId") @NotNull @Positive Long orderId) {
-        return Result.ok(orderInfoService.isStartDrive(driverId,orderId));
+        return Result.ok(orderInfoService.isStartDrive(driverId, orderId));
     }
 
     @Operation(summary = "根据时间段获取订单数")
@@ -147,12 +149,12 @@ public class OrderInfoController {
     @Operation(summary = "获取乘客订单分页列表")
     @GetMapping("/findCustomerOrderPage/{customerId}/{page}/{limit}")
     public Result<PageVo<OrderListVo>> findCustomerOrderPage(@PathVariable("customerId") @NotNull @Positive Long customerId,
-                                                @PathVariable("page") @NotNull @Positive Long page,
-                                                @PathVariable("limit") @NotNull @Positive  Long limit) {
-        //创建page对象
-        Page<OrderInfo> pageParam = new Page<>(page,limit);
-        //调用service方法实现分页条件查询
-        PageVo<OrderListVo> pageVo = orderInfoService.findCustomerOrderPage(pageParam,customerId);
+                                                             @PathVariable("page") @NotNull @Positive Long page,
+                                                             @PathVariable("limit") @NotNull @Positive Long limit) {
+        // 创建page对象
+        Page<OrderInfo> pageParam = new Page<>(page, limit);
+        // 调用service方法实现分页条件查询
+        PageVo<OrderListVo> pageVo = orderInfoService.findCustomerOrderPage(pageParam, customerId);
         return Result.ok(pageVo);
     }
 
@@ -175,14 +177,17 @@ public class OrderInfoController {
     public Result<OrderBillVo> getOrderBillInfo(@PathVariable("orderId") @NotNull @Positive Long orderId) {
         return Result.ok(orderInfoService.getOrderBillInfo(orderId));
     }
+
     @Operation(summary = "根据订单id获取实际分账信息")
     @GetMapping("/getOrderProfitSharing/{orderId}")
-    public Result<OrderProfitsharingVo> getOrderProfitSharing(@PathVariable("orderId") @NotNull @Positive  Long orderId) {
+    public Result<OrderProfitsharingVo> getOrderProfitSharing(@PathVariable("orderId") @NotNull @Positive Long orderId) {
         return Result.ok(orderInfoService.getOrderProfitSharing(orderId));
     }
+
     @Operation(summary = "发送账单信息")
     @GetMapping("/sendOrderBillInfo/{orderId}/{driverId}")
-    Result<Boolean> sendOrderBillInfo(@PathVariable("orderId")  @NotNull @Positive  Long orderId, @PathVariable("driverId")  @NotNull @Positive  Long driverId) {
+    Result<Boolean> sendOrderBillInfo(@PathVariable("orderId") @NotNull @Positive Long orderId, @PathVariable(
+            "driverId") @NotNull @Positive Long driverId) {
         return Result.ok(orderInfoService.sendOrderBillInfo(orderId, driverId));
     }
 
@@ -205,6 +210,12 @@ public class OrderInfoController {
         return Result.ok(orderInfoService.getOrderRewardFee(orderNo));
     }
 
+    @Operation(summary = "更新订单优惠券金额")
+    @GetMapping("/updateCouponAmount/{orderId}/{couponAmount}")
+    public Result<Boolean> updateCouponAmount(@PathVariable("orderId") @NotNull @Positive Long orderId,
+                                              @PathVariable("couponAmount") @NotNull @Positive BigDecimal couponAmount) {
+        return Result.ok(orderInfoService.updateCouponAmount(orderId, couponAmount));
+    }
 
 }
 
