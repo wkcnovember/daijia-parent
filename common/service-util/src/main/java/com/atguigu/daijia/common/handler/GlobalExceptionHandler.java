@@ -21,44 +21,36 @@ import java.util.Map;
 
 /**
  * 全局异常处理类
- *
  */
 @Slf4j
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
 
-    // 兜底处理
-    @ExceptionHandler(Exception.class)
-    @ResponseBody
-    public Result error(Exception e){
-        e.printStackTrace();
-        return Result.fail();
-    }
-
     /**
      * 自定义异常处理方法
+     *
      * @param e
      * @return
      */
     @ExceptionHandler(GuiguException.class)
     @ResponseBody
-    public Result error(GuiguException e){
-        log.warn("自定义异常={}",e.getMessage());
+    public Result error(GuiguException e) {
+        log.warn("自定义异常={}", e.getMessage());
         // e.printStackTrace();
-        return Result.build(null,e.getCode(), e.getMessage());
+        return Result.build(null, e.getCode(), e.getMessage());
     }
 
     @ExceptionHandler(DecodeException.class)
     @ResponseBody
-    public Result error(DecodeException e){
+    public Result error(DecodeException e) {
         e.printStackTrace();
-        return Result.build(null,e.status(),  e.getMessage());
+        return Result.build(null, e.status(), e.getMessage());
     }
 
     @ExceptionHandler({IllegalArgumentException.class})
     @ResponseBody
-    public Result llegalArgumentException(Exception e) {
+    public Result illegalArgumentException(Exception e) {
         e.printStackTrace();
         log.warn("触发异常拦截: " + e.getMessage(), e);
         return Result.build(null, ResultCodeEnum.ARGUMENT_VALID_ERROR);
@@ -93,7 +85,6 @@ public class GlobalExceptionHandler {
     }
 
 
-
     /**
      * 捕获 `@RequestParam` 或 `@PathVariable` 参数校验异常
      */
@@ -109,8 +100,9 @@ public class GlobalExceptionHandler {
                 })
                 .toList();
 
-        return Result.build(errors,ResultCodeEnum.ARGUMENT_VALID_ERROR);
+        return Result.build(errors, ResultCodeEnum.ARGUMENT_VALID_ERROR);
     }
+
     /**
      * 捕获表单提交参数校验异常
      */
@@ -128,7 +120,13 @@ public class GlobalExceptionHandler {
     }
 
 
-
+    // 兜底处理
+    @ExceptionHandler(Exception.class)
+    @ResponseBody
+    public Result error(Exception e) {
+        e.printStackTrace();
+        return Result.fail();
+    }
 
 
 }

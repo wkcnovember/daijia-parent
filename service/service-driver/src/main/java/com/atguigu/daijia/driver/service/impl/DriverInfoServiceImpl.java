@@ -221,7 +221,7 @@ public class DriverInfoServiceImpl extends ServiceImpl<DriverInfoMapper, DriverI
             Thread.currentThread().interrupt();
             log.error("获取司机[{}]认证信息被中断", driverId);
             throw new GuiguException(ResultCodeEnum.SYSTEM_ERROR);
-        }catch (Exception e) {
+        } catch (Exception e) {
             if (e.getCause() instanceof GuiguException) {
                 throw (GuiguException) e.getCause();
             }
@@ -250,6 +250,9 @@ public class DriverInfoServiceImpl extends ServiceImpl<DriverInfoMapper, DriverI
                 .select(BaseEntity::getId, DriverInfo::getGender, DriverInfo::getName);
         DriverInfo driverInfo =
                 baseMapper.selectOne(queryWrapper);
+        if (driverInfo == null) {
+            throw new GuiguException(ResultCodeEnum.DATA_ERROR);
+        }
         try {
 
             // 实例化一个认证对象，入参需要传入腾讯云账户 SecretId 和 SecretKey，此处还需注意密钥对的保密
@@ -279,12 +282,14 @@ public class DriverInfoServiceImpl extends ServiceImpl<DriverInfoMapper, DriverI
                 driverInfo.setAuthStatus(DriverConstant.AuthStatus.IN_REVIEW.getCode());
                 driverInfo.setFaceModelId(faceId);
                 baseMapper.updateById(driverInfo);
+                return Boolean.TRUE;
             }
         } catch (TencentCloudSDKException e) {
+
             e.printStackTrace();
-            return false;
+            return Boolean.FALSE;
         }
-        return true;
+        return Boolean.FALSE;
     }
 
     @Override
@@ -337,7 +342,7 @@ public class DriverInfoServiceImpl extends ServiceImpl<DriverInfoMapper, DriverI
 
             // 静态对比失败~
             if (Boolean.FALSE.equals(resp.getIsMatch())) {
-                throw new GuiguException(ResultCodeEnum.DATA_ERROR);
+                throw new GuiguException(ResultCodeEnum.FACE_VALIDATE_ERROR);
             }
 
 
@@ -374,8 +379,8 @@ public class DriverInfoServiceImpl extends ServiceImpl<DriverInfoMapper, DriverI
         wrapper.eq(DriverSet::getDriverId, driverId);
         DriverSet driverSet = new DriverSet();
         driverSet.setServiceStatus(status);
-        driverSetMapper.update(driverSet, wrapper);
-        return Boolean.TRUE;
+        int update = driverSetMapper.update(driverSet, wrapper);
+        return update == 1 ? Boolean.TRUE: Boolean.FALSE;
     }
 
     @Override
@@ -394,6 +399,9 @@ public class DriverInfoServiceImpl extends ServiceImpl<DriverInfoMapper, DriverI
                 .eq(DriverSet::getServiceStatus, DriverConstant.ServiceStatus.ACCEPTING_ORDERS.getStatus())
                 .in(DriverSet::getDriverId, driverIds);
         List<DriverSet> driverSets = driverSetMapper.selectList(wrapper);
+        if (CollectionUtils.isEmpty(driverIds)) {
+            return null;
+        }
         Map<Long, DriverSetVo> map = driverSets.stream()
                 .map(driverSet -> driverSetConvert.toDriverSetVo(driverSet))
                 .collect(Collectors.toMap(DriverSetVo::getDriverId, driverSetVo -> driverSetVo));

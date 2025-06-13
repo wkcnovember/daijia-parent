@@ -45,10 +45,7 @@ public class DriverServiceImpl implements DriverService {
     @Override
     public String login(String code) {
         Result<Long> longResult = driverInfoFeignClient.login(code);
-        if (!ResultCodeEnum.SUCCESS.getCode().equals(longResult.getCode()))
-            throw new GuiguException(ResultCodeEnum.LOGIN_ERROR);
-        Long driverId = longResult.getData();
-        if (driverId == null) throw new GuiguException(ResultCodeEnum.LOGIN_ERROR);
+        Long driverId = longResult.throwOnFailureOrDataIsNull().getData();
 
         // token字符串
         String token = UUID.randomUUID().toString().replaceAll("-", "");
@@ -64,8 +61,7 @@ public class DriverServiceImpl implements DriverService {
     public DriverLoginVo getDriverLoginInfo(Long driverId) {
 
         Result<DriverLoginVo> loginVoResult = driverInfoFeignClient.getDriverInfo(driverId);
-        loginVoResult.throwOnFailure();
-        return loginVoResult.getData();
+        return loginVoResult.throwOnFailureOrDataIsNull().getData();
     }
 
     @Override
@@ -101,32 +97,27 @@ public class DriverServiceImpl implements DriverService {
     @Override
     public Boolean isFaceRecognition(Long driverId) {
         Result<Boolean> faceRecognition = driverInfoFeignClient.isFaceRecognition(driverId);
-        faceRecognition.throwOnFailure();
-        return faceRecognition.getData();
+        return faceRecognition.throwOnFailureOrDataIsNull().getData();
     }
 
     @Override
     public Boolean startService(Long driverId) {
         // 1.司机是否认证通过?
         Result<DriverLoginVo> driverLoginVoResult = driverInfoFeignClient.getDriverInfo(driverId);
-        driverLoginVoResult.throwOnFailureOrDataIsNull();
-        DriverLoginVo driverLoginVo = driverLoginVoResult.getData();
+        DriverLoginVo driverLoginVo = driverLoginVoResult.throwOnFailureOrDataIsNull().getData();
         if (!Objects.equals(DriverStatus.VERIFIED.getCode(), driverLoginVo.getAuthStatus())) {
             throw new GuiguException(ResultCodeEnum.AUTH_ERROR);
         }
         // 2.当日是否人脸识别~
         Result<Boolean> faceRecognitionRes = driverInfoFeignClient.isFaceRecognition(driverId);
-        faceRecognitionRes.throwOnFailureOrDataIsNull();
-        Boolean isFace = faceRecognitionRes.getData();
+        Boolean isFace = faceRecognitionRes.throwOnFailureOrDataIsNull().getData();
         if (Boolean.FALSE.equals(isFace)) {
             throw new GuiguException(ResultCodeEnum.AUTH_ERROR);
         }
         // 3.更新司机订单状态
         Result<Boolean> result = driverInfoFeignClient.updateServiceStatus(driverId,
                 DriverConstant.ServiceStatus.ACCEPTING_ORDERS.getStatus());
-        result.throwOnFailureOrDataIsNull();
-
-        Boolean updateRes = result.getData();
+        Boolean updateRes = result.throwOnFailureOrDataIsNull().getData();
         if (Boolean.FALSE.equals(updateRes)) {
             throw new GuiguException(ResultCodeEnum.DATA_ERROR);
         }
@@ -141,23 +132,22 @@ public class DriverServiceImpl implements DriverService {
 
         // 等待清理完成
         try {
-            CompletableFuture.allOf(locationFuture, orderQueueFuture).get(1,TimeUnit.SECONDS);
+            CompletableFuture.allOf(locationFuture, orderQueueFuture).get(5, TimeUnit.SECONDS);
             return Boolean.TRUE;
-        }  catch (TimeoutException e) {
+        } catch (TimeoutException e) {
             log.warn("司机={}开启服务清理旧地址队列数据超时", driverId);
             throw new GuiguException(ResultCodeEnum.REMOTE_TIMEOUT);
         } catch (ExecutionException e) {
             if (e.getCause() instanceof GuiguException) {
                 throw (GuiguException) e.getCause();
             }
-            log.warn("司机={}开启服务清理旧地址队列数据={}", driverId, e);
+            log.warn("司机={}开启服务清理旧地址队列数据异常={}", driverId, e);
             throw new GuiguException(ResultCodeEnum.SYSTEM_ERROR);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             log.warn("Task interrupted", e); // 记录中断日志
             throw new GuiguException(ResultCodeEnum.SYSTEM_ERROR);
         }
-
 
 
     }

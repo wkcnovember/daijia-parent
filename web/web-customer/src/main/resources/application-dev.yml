@@ -12,9 +12,7 @@ spring:
           - dataId: common-account.yaml
             refresh: true
 
-#    openfeign:
-#      okhttp:
-#        enabled: true
+
   config:
     import:
       - optional:nacos:${spring.application.name}-dev.${spring.cloud.nacos.config.file-extension}

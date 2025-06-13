@@ -34,7 +34,7 @@ public class CiServiceImpl implements CiService {
 
 
     public Boolean imageAuditing(String path) {
-        COSClient cosClient = this.getPrivateCOSClient();
+        COSClient cosClient = this. getPrivateCOSClient();
         try {
             ImageAuditingRequest request = new ImageAuditingRequest();
             request.setBucketName(tencentCloudProperties.getBucketPrivate());

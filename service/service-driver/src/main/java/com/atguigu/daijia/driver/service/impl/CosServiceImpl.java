@@ -29,11 +29,13 @@ public class CosServiceImpl implements CosService {
 
     @Resource
     private CiService ciService;
+    public static final String LIMIT = "/";
 
     @Override
     public CosUploadVo upload(MultipartFile file, String type) {
         FileInfo fileInfo;
-        String objectName = String.format("%s/%s/", LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy/MM/dd")), type);
+        String objectName = String.format("%s/%s/", LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy/MM/dd"))
+                , type);
         try {
             // 指定oss保存文件路径
             // 上传图片，成功返回文件信息
@@ -41,9 +43,9 @@ public class CosServiceImpl implements CosService {
 
             String uploadPath = fileInfo.getPath() + fileInfo.getFilename();
             // 审核图片
-            Boolean isAuditing = ciService.imageAuditing(uploadPath);
-            if(Boolean.FALSE.equals(isAuditing)) {
-                //删除违规图片
+            Boolean isAuditing = ciService.imageAuditing(fileInfo.getBasePath() + uploadPath);
+            if (Boolean.FALSE.equals(isAuditing)) {
+                // 删除违规图片
                 fileStorageService.delete(uploadPath);
                 throw new GuiguException(ResultCodeEnum.IMAGE_AUDITION_FAIL);
             }
@@ -83,6 +85,7 @@ public class CosServiceImpl implements CosService {
         return downloadResult.getUrl();
 
     }
+
     @Override
     public String getImageUrl(String path) {
 

@@ -38,15 +38,13 @@ public class LocationServiceImpl implements LocationService {
 
         // 根据司机id获取司机个性化设置信息
         Result<DriverSetVo> result = driverInfoFeignClient.getDriverSet(updateDriverLocationForm.getDriverId());
-        result.throwOnFailure();
-        DriverSetVo driverSetVo = result.getData();
+        DriverSetVo driverSetVo = result.throwOnFailureOrDataIsNull().getData();
 
         // 判断：如果司机开始接单，更新位置信息
         Integer serviceStatus = driverSetVo.getServiceStatus();
         if (Objects.equals(serviceStatus, DriverConstant.ServiceStatus.ACCEPTING_ORDERS.getStatus())) {
             Result<Boolean> locationRes = locationFeignClient.updateDriverLocation(updateDriverLocationForm);
-            locationRes.throwOnFailure();
-            return locationRes.getData();
+            return locationRes.throwOnFailureOrDataIsNull().getData();
         } else {
             // 没有接单
             throw new GuiguException(ResultCodeEnum.NO_START_SERVICE);

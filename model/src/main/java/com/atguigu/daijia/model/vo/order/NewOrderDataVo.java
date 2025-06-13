@@ -4,7 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 import java.math.BigDecimal;
-import java.util.Date;
+import java.time.LocalDateTime;
 
 @Data
 public class NewOrderDataVo {
@@ -34,5 +34,5 @@ public class NewOrderDataVo {
 	private BigDecimal favourFee;
 
 	@Schema(description = "下单时间")
-	private Date createTime;
+	private LocalDateTime createTime;
 }

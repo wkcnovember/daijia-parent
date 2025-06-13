@@ -10,6 +10,7 @@ import com.atguigu.daijia.customer.mapper.CustomerLoginLogMapper;
 import com.atguigu.daijia.customer.service.CustomerInfoService;
 import com.atguigu.daijia.model.constants.login.LoginCannelConstants;
 import com.atguigu.daijia.model.convert.customer.CustomerInfoConvert;
+import com.atguigu.daijia.model.entity.base.BaseEntity;
 import com.atguigu.daijia.model.entity.customer.CustomerInfo;
 import com.atguigu.daijia.model.entity.customer.CustomerLoginLog;
 import com.atguigu.daijia.model.form.customer.UpdateWxPhoneForm;
@@ -22,6 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 import me.chanjar.weixin.common.error.WxErrorException;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
@@ -37,6 +39,7 @@ public class CustomerInfoServiceImpl extends ServiceImpl<CustomerInfoMapper, Cus
 
 
     @Override
+    @Transactional
     public Long login(String code) {
         String openid;
         try {
@@ -44,7 +47,7 @@ public class CustomerInfoServiceImpl extends ServiceImpl<CustomerInfoMapper, Cus
             WxMaJscode2SessionResult sessionInfo = wxMaService.getUserService().getSessionInfo(code);
             openid = sessionInfo.getOpenid();
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new GuiguException(ResultCodeEnum.DATA_ERROR);
         }
 
         // 2.判断是否第一次登录 此 openid 对应的用户,如果是添加到表里~
@@ -71,7 +74,15 @@ public class CustomerInfoServiceImpl extends ServiceImpl<CustomerInfoMapper, Cus
 
     @Override
     public CustomerLoginVo getCustomerInfo(Long customerId) {
-        CustomerInfo customerInfo = getById(customerId);
+        CustomerInfo customerInfo = getOne(
+                new LambdaQueryWrapper<CustomerInfo>()
+                        .select(CustomerInfo::getWxOpenId,
+                                CustomerInfo::getNickname,
+                                CustomerInfo::getGender,
+                                CustomerInfo::getAvatarUrl,
+                                CustomerInfo::getPhone)
+                        .eq(BaseEntity::getId, customerId)
+        );
         if (null == customerInfo) return null;
         CustomerLoginVo customerLoginVo = customerInfoConvert.toCustomerLoginVo(customerInfo);
         String phone = customerInfo.getPhone();
@@ -83,24 +94,13 @@ public class CustomerInfoServiceImpl extends ServiceImpl<CustomerInfoMapper, Cus
     @Override
     public Boolean updateWxPhoneNumber(UpdateWxPhoneForm updateWxPhoneForm) {
 
-        // 查询有没有
-        // Long customerId = updateWxPhoneForm.getCustomerId();
-        // CustomerInfo customerInfo = baseMapper.selectOne(
-        //         new LambdaQueryWrapper<CustomerInfo>().eq(BaseEntity::getId, customerId)
-        //                 .select(BaseEntity::getId)
-        // );
-        // if (Objects.isNull(customerInfo)) {
-        //     return Boolean.FALSE;
-        // }
-
         try {
             WxMaPhoneNumberInfo phoneNoInfo = wxMaService.getUserService().getPhoneNoInfo(updateWxPhoneForm.getCode());
             String phoneNumber = phoneNoInfo.getPhoneNumber();
             CustomerInfo customerInfo = new CustomerInfo();
             customerInfo.setId(updateWxPhoneForm.getCustomerId());
             customerInfo.setPhone(phoneNumber);
-            baseMapper.updateById(customerInfo);
-            return Boolean.TRUE;
+            return baseMapper.updateById(customerInfo) == 1;
         } catch (WxErrorException e) {
             log.error("更新用户手机号码失败,原因={}", e.getMessage());
             throw new GuiguException(ResultCodeEnum.DATA_ERROR);

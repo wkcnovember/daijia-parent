@@ -43,7 +43,6 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.Date;
 import java.util.Objects;
 import java.util.concurrent.*;
 
@@ -92,10 +91,8 @@ public class OrderServiceImpl implements OrderService {
         CalculateDrivingLineForm calculateDrivingLineForm =
                 calculateDrivingLineConvert.toCalculateDrivingLine(expectOrderForm);
         Result<DrivingLineVo> drivingLineVoResult = mapFeignClient.calculateDrivingLine(calculateDrivingLineForm);
-        drivingLineVoResult.throwOnFailureOrDataIsNull();
-
         ExpectOrderVo expectOrderVo = new ExpectOrderVo();
-        DrivingLineVo drivingLineVo = drivingLineVoResult.getData();
+        DrivingLineVo drivingLineVo = drivingLineVoResult.throwOnFailureOrDataIsNull().getData();
         expectOrderVo.setDrivingLineVo(drivingLineVo);
 
         // 预估订单金额
@@ -105,8 +102,7 @@ public class OrderServiceImpl implements OrderService {
         feeRuleRequestForm.setStartTime(LocalDateTime.now());
         feeRuleRequestForm.setWaitMinute(0);
         Result<FeeRuleResponseVo> feeRuleResponseVoResult = feeRuleFeignClient.calculateOrderFee(feeRuleRequestForm);
-        feeRuleResponseVoResult.throwOnFailureOrDataIsNull();
-        FeeRuleResponseVo data = feeRuleResponseVoResult.getData();
+        FeeRuleResponseVo data = feeRuleResponseVoResult.throwOnFailureOrDataIsNull().getData();
         expectOrderVo.setFeeRuleResponseVo(data);
 
         return expectOrderVo;
@@ -128,11 +124,11 @@ public class OrderServiceImpl implements OrderService {
         FeeRuleRequestForm feeRuleRequestForm = new FeeRuleRequestForm();
         BigDecimal distance = drivingLineVo.getDistance();
         feeRuleRequestForm.setDistance(distance);
-        feeRuleRequestForm.setStartTime(LocalDateTime.now());
+        LocalDateTime startTime = LocalDateTime.now();
+        feeRuleRequestForm.setStartTime(startTime);
         feeRuleRequestForm.setWaitMinute(0);
         Result<FeeRuleResponseVo> feeRuleResponseVoResult = feeRuleFeignClient.calculateOrderFee(feeRuleRequestForm);
-        feeRuleResponseVoResult.throwOnFailure();
-        FeeRuleResponseVo feeRuleResponseVo = feeRuleResponseVoResult.getData();
+        FeeRuleResponseVo feeRuleResponseVo = feeRuleResponseVoResult.throwOnFailureOrDataIsNull().getData();
 
         // 3.封装数据订单
         OrderInfoForm orderInfoForm = orderInfoConvert.toOrderInfoForm(submitOrderForm);
@@ -141,8 +137,8 @@ public class OrderServiceImpl implements OrderService {
 
         // 4.远程调用订单添加接口~
         Result<Long> longResult = orderInfoFeignClient.saveOrderInfo(orderInfoForm);
-        longResult.throwOnFailureOrDataIsNull();
-        Long orderId = longResult.getData();
+
+        Long orderId = longResult.throwOnFailureOrDataIsNull().getData();
 
 
         // 任务调度：查询附近可以接单司机
@@ -159,7 +155,7 @@ public class OrderServiceImpl implements OrderService {
             newOrderDispatchVo.setExpectDistance(orderInfoForm.getExpectDistance());
             newOrderDispatchVo.setExpectTime(drivingLineVo.getDuration());
             newOrderDispatchVo.setFavourFee(orderInfoForm.getFavourFee());
-            newOrderDispatchVo.setCreateTime(new Date());
+            newOrderDispatchVo.setCreateTime(startTime);
             // 远程调用
             newOrderFeignClient.addAndStartTask(newOrderDispatchVo);
             // Long jobId = newOrderFeignClient.addAndStartTask(newOrderDispatchVo).getData();
@@ -172,14 +168,9 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public Integer getOrderStatus(Long orderId) {
         Long customerId = AuthContextHolder.getUserId();
-        Result<Boolean> result = orderInfoFeignClient.isCustomerCurrentOrder(customerId, orderId);
-        result.throwOnFailureOrDataIsNull();
-        if (Boolean.FALSE.equals(result.getData())) {
-            throw new GuiguException(ResultCodeEnum.ILLEGAL_REQUEST);
-        }
-        Result<Integer> orderStatus = orderInfoFeignClient.getOrderStatus(orderId);
-        orderStatus.throwOnFailure();
-        return orderStatus.getData();
+        Integer status =
+                orderInfoFeignClient.getCustomerOrderStatus(customerId, orderId).throwOnFailureOrDataIsNull().getData();
+        return status;
     }
 
     @Override
@@ -261,8 +252,7 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public DrivingLineVo calculateDrivingLine(CalculateDrivingLineForm calculateDrivingLineForm) {
         Result<DrivingLineVo> drivingLineVoResult = mapFeignClient.calculateDrivingLine(calculateDrivingLineForm);
-        drivingLineVoResult.throwOnFailureOrDataIsNull();
-        return drivingLineVoResult.getData();
+        return drivingLineVoResult.throwOnFailureOrDataIsNull().getData();
     }
 
     @Override

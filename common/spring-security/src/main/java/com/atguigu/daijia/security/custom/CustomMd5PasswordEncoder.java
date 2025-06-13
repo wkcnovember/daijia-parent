@@ -1,6 +1,5 @@
 package com.atguigu.daijia.security.custom;
 
-import com.atguigu.daijia.common.util.MD5;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 

@@ -87,14 +87,10 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public Integer getOrderStatus(Long orderId) {
-        Result<Boolean> result = orderInfoFeignClient.isDriverOrder(AuthContextHolder.getUserId(), orderId);
-        result.throwOnFailureOrDataIsNull();
-        if (Boolean.FALSE.equals(result.getData())) {
-            throw new GuiguException(ResultCodeEnum.ILLEGAL_REQUEST);
-        }
-        Result<Integer> orderStatus = orderInfoFeignClient.getOrderStatus(orderId);
-        orderStatus.throwOnFailureOrDataIsNull();
-        return orderStatus.getData();
+        Long driverId = AuthContextHolder.getUserId();
+        Integer status =
+                orderInfoFeignClient.getDriverOrderStatus(driverId, orderId).throwOnFailureOrDataIsNull().getData();
+        return status;
     }
 
     @Override
@@ -204,8 +200,7 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public DrivingLineVo calculateDrivingLine(CalculateDrivingLineForm calculateDrivingLineForm) {
         Result<DrivingLineVo> drivingLineVoResult = mapFeignClient.calculateDrivingLine(calculateDrivingLineForm);
-        drivingLineVoResult.throwOnFailureOrDataIsNull();
-        return drivingLineVoResult.getData();
+        return drivingLineVoResult.throwOnFailureOrDataIsNull().getData();
     }
 
     @Override

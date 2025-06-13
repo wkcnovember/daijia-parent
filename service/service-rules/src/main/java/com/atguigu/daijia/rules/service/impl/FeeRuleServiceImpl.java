@@ -37,7 +37,6 @@ public class FeeRuleServiceImpl implements FeeRuleService {
         feeRuleRequest.setDistance(calculateOrderFeeForm.getDistance());
         // calculateOrderFeeForm.getStartTime()
         String startTime = DateTimeFormatter.ofPattern("HH:mm:ss").format(calculateOrderFeeForm.getStartTime());
-        // String startTime = new DateTime(calculateOrderFeeForm.getStartTime()).toString("HH:mm:ss");
         feeRuleRequest.setStartTime(startTime);
         feeRuleRequest.setWaitMinute(calculateOrderFeeForm.getWaitMinute());
         log.info("传入参数：{}", JSON.toJSONString(feeRuleRequest));

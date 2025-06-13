@@ -1,9 +1,6 @@
 package com.atguigu.daijia.customer.service.impl;
 
-import com.atguigu.daijia.common.constant.RedisConstant;
-import com.atguigu.daijia.common.execption.GuiguException;
 import com.atguigu.daijia.common.result.Result;
-import com.atguigu.daijia.common.result.ResultCodeEnum;
 import com.atguigu.daijia.customer.client.CustomerInfoFeignClient;
 import com.atguigu.daijia.customer.service.CustomerService;
 import com.atguigu.daijia.model.constants.redis.AuthConstents;
@@ -32,9 +29,7 @@ public class CustomerServiceImpl implements CustomerService {
         // 1.通过code远程获取用户id
         Result<Long> longResult = customerInfoFeignClient.login(code);
         // 2.状态问题
-        longResult.throwOnFailure();
-        Long customerId = longResult.getData();
-        if (null == customerId) throw new GuiguException(ResultCodeEnum.DATA_ERROR);
+        Long customerId = longResult.throwOnFailureOrDataIsNull().getData();
 
         // 生成token字符串
         String token = UUID.randomUUID().toString().replaceAll("-", "");
@@ -55,19 +50,12 @@ public class CustomerServiceImpl implements CustomerService {
     @Override
     public CustomerLoginVo getCustomerLoginInfo(Long userId) {
         Result<CustomerLoginVo> customerLoginVoResult = customerInfoFeignClient.getCustomerInfo(userId);
-        if (!customerLoginVoResult.getCode().equals(ResultCodeEnum.SUCCESS.getCode()))
-            throw new GuiguException(ResultCodeEnum.DATA_ERROR);
-        CustomerLoginVo customerLoginVo = customerLoginVoResult.getData();
-        if (null == customerLoginVo) throw new GuiguException(ResultCodeEnum.DATA_ERROR);
-        return customerLoginVo;
+        return customerLoginVoResult.throwOnFailureOrDataIsNull().getData();
     }
 
     @Override
     public Boolean updateWxPhoneNumber(UpdateWxPhoneForm updateWxPhoneForm) {
         Result<Boolean> result = customerInfoFeignClient.updateWxPhoneNumber(updateWxPhoneForm);
-        if(!result.getCode().equals(ResultCodeEnum.SUCCESS.getCode())) {
-            throw new GuiguException(result.getCode(),result.getMessage());
-        }
-        return result.getData();
+        return result.throwOnFailureOrDataIsFalse().getData();
     }
 }

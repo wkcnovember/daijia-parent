@@ -84,7 +84,7 @@ public class LocationServiceImpl implements LocationService {
                 RedisGeoCommands.GeoRadiusCommandArgs.newGeoRadiusArgs()
                         .includeCoordinates()  // 查到详细坐标
                         .includeDistance()  //  查到距离
-                        //.limit(10) // 限制10条
+                        .limit(10) // 限制10条
                         .sortAscending(); // 升序
         GeoResults<RedisGeoCommands.GeoLocation<String>> driverRes = ops.radius(RedisConstant.DRIVER_GEO_LOCATION,
                 new Circle(new Point(searchNearByDriverForm.getLongitude().doubleValue(),
@@ -94,11 +94,14 @@ public class LocationServiceImpl implements LocationService {
         if (null == driverRes) return Collections.emptyList();
 
         List<GeoResult<RedisGeoCommands.GeoLocation<String>>> content = driverRes.getContent();
+        List<Long> driverIds = content.stream()
+                .map(item -> JSON.parseObject(item.getContent().getName(), Long.class)).toList();
+
+        if (CollectionUtils.isEmpty(driverIds)) return Collections.emptyList();
 
         // 批量查询司机的个性化设置 比如 接单距离 跑单距离 还有 接单状态
         Result<Map<Long, DriverSetVo>> driverSetMap =
-                driverInfoFeignClient.getDriverSetMap(content.stream()
-                        .map(item -> JSON.parseObject(item.getContent().getName(), Long.class)).toList());
+                driverInfoFeignClient.getDriverSetMap(driverIds);
 
         driverSetMap.throwOnFailure();
         Map<Long, DriverSetVo> data = driverSetMap.getData();
@@ -116,7 +119,7 @@ public class LocationServiceImpl implements LocationService {
                     }
 
 
-                    // 乘客距离大于司机接客距离
+                    // 乘客距离司机的距离 > 司机接客距离
                     BigDecimal distance = BigDecimal.valueOf(item.getDistance().getValue());
                     BigDecimal acceptDistance = driverSetVo.getAcceptDistance();
                     if (distance.compareTo(acceptDistance) > 0) {
@@ -131,7 +134,7 @@ public class LocationServiceImpl implements LocationService {
                     }
 
                     // 司机接单的范围和乘客的距离比较 >=0 在范围内  否则不在
-                    return orderDistance.compareTo(BigDecimal.valueOf(DriverConstant.NEARBY_DRIVER_RADIUS)) >= 0;
+                    return orderDistance.compareTo(searchNearByDriverForm.getMileageDistance()) >= 0;
                 }).map(item -> {
                     String name = item.getContent().getName();
                     Long driverId = JSON.parseObject(name, Long.class);

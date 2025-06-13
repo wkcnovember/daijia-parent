@@ -8,9 +8,6 @@ public class RedisConstant {
 
 
 
-
-
-
     // 订单延迟队列
     public static final String ORDER_BLOCKED_QUEUE = "o:b";
     public static final int ORDER_BLOCKED_QUEUE_TIMEOUT = 15;
@@ -28,6 +25,8 @@ public class RedisConstant {
     //司机接单临时容器
     public static final String DRIVER_ORDER_TEMP_LIST = "driver:order:temp:list:";
     public static final long DRIVER_ORDER_TEMP_LIST_EXPIRES_TIME = 900;
+
+    public static final long DRIVER_ORDER_TEMP_LIST_EXPIRES_MILL_TIME = 900000;
     //司机订单去重容器
     public static final String DRIVER_ORDER_REPEAT_LIST = "driver:order:repeat:list:";
     public static final long DRIVER_ORDER_REPEAT_LIST_EXPIRES_TIME = 16;
@@ -43,6 +42,7 @@ public class RedisConstant {
     //订单接单标识
     public static final String ORDER_ACCEPT_MARK = "o:a:m:";
     public static final long ORDER_ACCEPT_MARK_EXPIRES_TIME = 900;
+    public static final long ORDER_ACCEPT_MARK_EXPIRES_MILL_TIME = 900000;
 
     //抢新订单锁
     public static final String ROB_NEW_ORDER_LOCK = "rob:new:order:lock";

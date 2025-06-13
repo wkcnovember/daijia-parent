@@ -24,7 +24,6 @@ public class CosServiceImpl implements CosService {
     public CosUploadVo uploadFile(MultipartFile file,String type) {
         //远程调用
         Result<CosUploadVo> cosUploadVoResult = cosFeignClient.upload(file,type);
-        cosUploadVoResult.throwOnFailure();
-        return cosUploadVoResult.getData();
+        return cosUploadVoResult.throwOnFailureOrDataIsNull().getData();
     }
 }

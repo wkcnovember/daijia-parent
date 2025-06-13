@@ -18,9 +18,8 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "系统登录日志管理")
 @RestController
 @RequestMapping(value="/sysLoginLog")
-@SuppressWarnings({"unchecked", "rawtypes"})
 public class SysLoginLogController {
-	
+
 	@Resource
 	private SysLoginLogService sysLoginLogService;
 
@@ -29,10 +28,10 @@ public class SysLoginLogController {
 	public Result findPage(
 		@Parameter(name = "page", description = "当前页码", required = true)
 		@PathVariable Long page,
-	
+
 		@Parameter(name = "limit", description = "每页记录数", required = true)
 		@PathVariable Long limit,
-	
+
 		@Parameter(name = "sysLoginLogVo", description = "查询对象", required = false)
 		@RequestBody SysLoginLogQuery sysLoginLogQuery) {
 		return Result.ok(sysLoginLogService.findPage(page, limit, sysLoginLogQuery));

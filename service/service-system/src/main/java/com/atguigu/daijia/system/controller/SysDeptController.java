@@ -13,9 +13,8 @@ import java.util.List;
 @Tag(name = "部门管理")
 @RestController
 @RequestMapping(value="/sysDept")
-@SuppressWarnings({"unchecked", "rawtypes"})
 public class SysDeptController {
-	
+
 	@Resource
 	private SysDeptService sysDeptService;
 

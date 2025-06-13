@@ -31,10 +31,12 @@ public class JobHandler {
         this.newOrderService = newOrderService;
     }
 
+
     @XxlJob("newOrderTaskHandler")
     public void newOrderTaskHandler() {
         //记录任务调度日志
         XxlJobLog xxlJobLog = new XxlJobLog();
+        // 在任务执行过程中获取当前任务的唯一标识（Job ID）
         xxlJobLog.setJobId(XxlJobHelper.getJobId());
         long startTime = System.currentTimeMillis();
 

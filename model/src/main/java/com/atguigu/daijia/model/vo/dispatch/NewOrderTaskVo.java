@@ -8,7 +8,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 import java.math.BigDecimal;
-import java.util.Date;
+import java.time.LocalDateTime;
 
 @Data
 public class NewOrderTaskVo {
@@ -59,5 +59,5 @@ public class NewOrderTaskVo {
 
 	@Schema(description = "下单时间")
 	@NotNull
-	private Date createTime;
+	private LocalDateTime createTime;
 }

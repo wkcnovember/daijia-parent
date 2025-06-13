@@ -5,6 +5,7 @@ import com.atguigu.daijia.common.constant.RedisConstant;
 import com.atguigu.daijia.common.execption.GuiguException;
 import com.atguigu.daijia.common.result.Result;
 import com.atguigu.daijia.common.result.ResultCodeEnum;
+import com.atguigu.daijia.common.util.TimeUtils;
 import com.atguigu.daijia.dispatch.mapper.OrderJobMapper;
 import com.atguigu.daijia.dispatch.service.NewOrderService;
 import com.atguigu.daijia.dispatch.xxl.client.XxlJobClient;
@@ -26,10 +27,8 @@ import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
+import java.time.LocalDateTime;
+import java.util.*;
 
 import static com.atguigu.daijia.common.constant.RedisConstant.*;
 
@@ -73,8 +72,8 @@ public class NewOrderServiceImpl implements NewOrderService {
             // String corn 执行cron表达式
             // String desc 描述信息
             Long jobId = xxlJobClient.addJob("newOrderTaskHandler", "",
-                    "0 0/1 * * * ?",
-                    "新创建订单任务调度：订单=>" + newOrderTaskVo.getOrderId());
+                    "0/30 * * * * ?",  // 每30秒执行一次,
+                    "订单=>" + newOrderTaskVo.getOrderId() + "开启任务调度：寻找附近司机");
 
             // 记录任务调度信息
             orderJob = new OrderJob();
@@ -116,15 +115,17 @@ public class NewOrderServiceImpl implements NewOrderService {
             e.printStackTrace();
             // 停止并删除任务调度
             xxlJobClient.removeJob(jobId);
+            e.printStackTrace();
             throw new GuiguException(ResultCodeEnum.DATA_ERROR);
             // 停止并删除任务调度
         }
 
 
-        long time = newOrderTaskVo.getCreateTime().getTime() + ORDER_ACCEPT_MARK_EXPIRES_TIME * 1000;
+        long time =
+                TimeUtils.toUnixTimestampMillis(newOrderTaskVo.getCreateTime()) + ORDER_ACCEPT_MARK_EXPIRES_MILL_TIME;
         // 超过15分钟自动取消订单
         Long orderId = newOrderTaskVo.getOrderId();
-        if (System.currentTimeMillis() > time) {
+        if (TimeUtils.toUnixTimestampMillis(LocalDateTime.now()) > time) {
             // 停止并删除任务调度
             xxlJobClient.removeJob(jobId);
             return;
@@ -132,13 +133,11 @@ public class NewOrderServiceImpl implements NewOrderService {
         }
 
         Result<Integer> orderStatus = orderInfoFeignClient.getOrderStatus(orderId);
-        orderStatus.throwOnFailureOrDataIsNull();
-        Integer status = orderStatus.getData();
-        if (!OrderStatus.WAITING_ACCEPT.getStatus().equals(status)) {
+        Integer status = orderStatus.throwOnFailureOrDataIsNull().getData();
+
+        if (!Objects.equals(OrderStatus.WAITING_ACCEPT.getStatus(), status)) {
             // 停止并删除任务调度
             xxlJobClient.removeJob(jobId);
-            // 删除订单在缓存的信息
-            // stringRedisTemplate.opsForSet().remove(repeatKey);
             return;
         }
 
@@ -179,7 +178,7 @@ public class NewOrderServiceImpl implements NewOrderService {
                             Collections.emptyList(),
                             orderId.toString(),
                             driverId.toString(),
-                            String.valueOf(newOrderDataVo.getCreateTime().getTime()),
+                            String.valueOf(TimeUtils.toUnixTimestampMillis(newOrderTaskVo.getCreateTime())),
                             JSON.toJSONString(newOrderDataVo),
                             String.valueOf(DRIVER_ORDER_TEMP_LIST_EXPIRES_TIME)
                     );
@@ -199,32 +198,15 @@ public class NewOrderServiceImpl implements NewOrderService {
         String key = RedisConstant.DRIVER_ORDER_ID_ZSET + driverId;
         String k2 = RedisConstant.DRIVER_ORDER_INFO_HASH + driverId;
 
-        long min = System.currentTimeMillis() - DRIVER_ORDER_TEMP_LIST_EXPIRES_TIME * 1000;
+        long min = System.currentTimeMillis() - DRIVER_ORDER_TEMP_LIST_EXPIRES_MILL_TIME;
 
         // 查最近的15分钟内的订单
-        Set<String> orderIdsJson = stringRedisTemplate.opsForZSet().reverseRangeByScore(key, min, System.currentTimeMillis());
+        Set<String> orderIdsJson = stringRedisTemplate.opsForZSet().reverseRangeByScore(key, min,
+                System.currentTimeMillis());
         if (CollectionUtils.isEmpty(orderIdsJson)) {
             return Collections.emptyList();
 
         }
-        // // 查看最近的订单
-        // List<Long> orderIds = orderIdsJson.stream().map(order -> JSON.parseObject(order,
-        //         Long.class)).toList();
-
-
-        // List<NewOrderDataVo> newOrderDataVos = objects.stream().map(item -> {
-        //     String s = JSON.
-        //     JSONObject jsonObject = JSON.parseObject(s);
-        //     return jsonObject.toJavaObject(NewOrderDataVo.class);
-
-        // }).toList();
-
-        // 查看最近的订单
-        // List<String> nearOrders = stringRedisTemplate.opsForList().range(key, 0, -1);
-        // if (CollectionUtils.isEmpty(nearOrders)) return Collections.emptyList();
-        // return nearOrders.stream().map(order -> JSON.parseObject(order,
-        //         NewOrderDataVo.class)).toList();
-        // return newOrderDataVos;
 
         List<Object> objects = stringRedisTemplate.opsForHash().multiGet(k2, new ArrayList<>(orderIdsJson));
         List<NewOrderDataVo> newOrderDataVos = JSON.parseArray(objects.toString(), NewOrderDataVo.class);

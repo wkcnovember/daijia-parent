@@ -34,6 +34,8 @@ public class OcrServiceImpl implements OcrService {
     @Resource
     private CosService cosService;
 
+    public static final String FORMATE = "yyyy/MM/dd";
+
 
     @Override
     public IdCardOcrVo idCardOcr(MultipartFile file) {
@@ -56,7 +58,7 @@ public class OcrServiceImpl implements OcrService {
                 // 身份证正面
                 idCardOcrVo.setName(resp.getName());
                 idCardOcrVo.setGender("男".equals(resp.getSex()) ? "1" : "2");
-                idCardOcrVo.setBirthday(DateTimeFormat.forPattern("yyyy/MM/dd").parseDateTime(resp.getBirth()).toDate());
+                idCardOcrVo.setBirthday(DateTimeFormat.forPattern(FORMATE).parseDateTime(resp.getBirth()).toDate());
                 idCardOcrVo.setIdcardNo(resp.getIdNum());
                 idCardOcrVo.setIdcardAddress(resp.getAddress());
 

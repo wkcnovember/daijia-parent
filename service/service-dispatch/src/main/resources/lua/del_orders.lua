@@ -6,6 +6,6 @@
 local driverId = ARGV[1]
 local driver_order_id_zset = "driver:zet:orders:" .. driverId
 local driver_order_info_hash = "driver:hash:orders:" .. driverId
-redis.call('del', driver_order_id_zset)
-redis.call('del', driver_order_info_hash)
+redis.call('unlink', driver_order_id_zset)
+redis.call('unlink', driver_order_info_hash)
 return 1

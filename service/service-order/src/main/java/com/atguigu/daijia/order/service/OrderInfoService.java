@@ -17,7 +17,7 @@ public interface OrderInfoService extends IService<OrderInfo> {
 
     Long saveOrderInfo(OrderInfoForm orderInfoForm);
 
-    Integer getOrderStatus(Long orderId);
+    Integer getOrderStatus(Long orderId, Long id, boolean isDriver);
 
     Boolean updateOrderStatus(Long orderId, Integer status);
 

@@ -31,6 +31,32 @@ public interface OrderInfoFeignClient {
     @GetMapping("/getOrderStatus/{orderId}")
     Result<Integer> getOrderStatus(@PathVariable Long orderId);
 
+    /**
+     * 根据用户订单id获取订单状态
+     *
+     * @param customerId
+     * @param orderId
+     * @return
+     */
+    @GetMapping("/getCustomerOrderStatus/{customerId}/{orderId}")
+    Result<Integer> getCustomerOrderStatus(
+            @PathVariable("customerId") Long customerId,
+            @PathVariable("orderId") Long orderId
+    );
+
+    /**
+     * 根据司机订单id获取订单状态
+     *
+     * @param driverId
+     * @param orderId
+     * @return
+     */
+    @GetMapping("/getDriverOrderStatus/{driverId}/{orderId}")
+    Result<Integer> getDriverOrderStatus(@PathVariable("driverId") Long driverId,
+                                         @PathVariable("orderId") Long orderId
+    );
+
+
     @GetMapping("/robNewOrder/{driverId}/{orderId}")
     Result<Boolean> robNewOrder(@PathVariable("driverId") Long driverId,
                                 @PathVariable("orderId") Long orderId);

@@ -1,7 +1,9 @@
 package com.atguigu.daijia.order.controller;
 
 import com.atguigu.daijia.common.result.Result;
+import com.atguigu.daijia.model.entity.base.BaseEntity;
 import com.atguigu.daijia.model.entity.order.OrderInfo;
+import com.atguigu.daijia.model.enums.order.OrderStatus;
 import com.atguigu.daijia.model.form.order.OrderInfoForm;
 import com.atguigu.daijia.model.form.order.StartDriveForm;
 import com.atguigu.daijia.model.form.order.UpdateOrderBillForm;
@@ -11,6 +13,7 @@ import com.atguigu.daijia.model.validate.group.ServiceGroup;
 import com.atguigu.daijia.model.vo.base.PageVo;
 import com.atguigu.daijia.model.vo.order.*;
 import com.atguigu.daijia.order.service.OrderInfoService;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -43,7 +46,31 @@ public class OrderInfoController {
     @Operation(summary = "根据订单id获取订单状态")
     @GetMapping("/getOrderStatus/{orderId}")
     public Result<Integer> getOrderStatus(@PathVariable @NotNull @Positive Long orderId) {
-        return Result.ok(orderInfoService.getOrderStatus(orderId));
+        OrderInfo orderInfo = orderInfoService.getOne(new LambdaQueryWrapper<OrderInfo>()
+                .select(OrderInfo::getStatus)
+                .eq(BaseEntity::getId, orderId)
+        );
+        return Result.ok(orderInfo == null ? OrderStatus.NULL_ORDER.getStatus() : orderInfo.getStatus());
+    }
+
+    @Operation(summary = "根据用户订单id获取订单状态")
+    @GetMapping("/getCustomerOrderStatus/{customerId}/{orderId}")
+    public Result<Integer> getCustomerOrderStatus(
+            @PathVariable("customerId") @NotNull @Positive Long customerId,
+            @PathVariable("orderId") @NotNull @Positive Long orderId
+    ) {
+        Integer orderStatus = orderInfoService.getOrderStatus(orderId, customerId, false);
+        return Result.ok(orderStatus);
+    }
+
+    @Operation(summary = "根据司机订单id获取订单状态")
+    @GetMapping("/getDriverOrderStatus/{driverId}/{orderId}")
+    public Result<Integer> getDriverOrderStatus(@PathVariable("driverId") @NotNull @Positive Long driverId,
+                                                @PathVariable("orderId") @NotNull @Positive Long orderId
+    ) {
+
+        Integer orderStatus = orderInfoService.getOrderStatus(orderId, driverId, true);
+        return Result.ok(orderStatus);
     }
 
 

@@ -11,7 +11,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.validation.constraints.NotBlank;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -28,7 +27,7 @@ public class CustomerController {
 
     @Operation(summary = "小程序授权登录")
     @GetMapping("/login/{code}")
-    public Result<String> wxLogin(@PathVariable @NotBlank  String code) {
+    public Result<String> wxLogin(@PathVariable @NotBlank String code) {
         return Result.ok(customerService.login(code));
     }
 
@@ -45,7 +44,7 @@ public class CustomerController {
     @Operation(summary = "更新用户微信手机号")
     @KjyLogin
     @PostMapping("/updateWxPhone")
-    public Result updateWxPhone(@RequestBody @Validated UpdateWxPhoneForm updateWxPhoneForm) {
+    public Result<Boolean> updateWxPhone(@RequestBody @Validated UpdateWxPhoneForm updateWxPhoneForm) {
         updateWxPhoneForm.setCustomerId(AuthContextHolder.getUserId());
         return Result.ok(customerService.updateWxPhoneNumber(updateWxPhoneForm));
     }

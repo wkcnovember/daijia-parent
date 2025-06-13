@@ -104,12 +104,27 @@ public class Result<T> {
             throw new GuiguException(this.getCode(), this.getMessage());
         }
     }
+
     public Result<T> throwOnFailureOrDataIsNull() {
         if (checkIsError()) {
             throw new GuiguException(this.getCode(), this.getMessage());
         }
         if (this.data == null) {
             throw new GuiguException(ResultCodeEnum.DATA_ERROR);
+        }
+        return this;
+    }
+
+    public Result<T> throwOnFailureOrDataIsFalse() {
+        if (checkIsError()) {
+            throw new GuiguException(this.getCode(), this.getMessage());
+        }
+        if (this.data == null) {
+            throw new GuiguException(ResultCodeEnum.DATA_ERROR);
+        }
+        Boolean flag = (Boolean) this.getData();
+        if (Boolean.FALSE.equals(flag)) {
+            throw new GuiguException(ResultCodeEnum.UPDATE_ERROR);
         }
         return this;
     }

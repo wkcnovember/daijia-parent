@@ -17,7 +17,6 @@ import java.util.Map;
 @Tag(name = "security登录管理")
 @RestController
 @RequestMapping(value="/securityLogin")
-@SuppressWarnings({"unchecked", "rawtypes"})
 public class SecurityLoginController {
 
 	@Resource

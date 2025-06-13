@@ -1,0 +1,21 @@
+package com.kjy
+import com.atguigu.daijia.model.form.rules.FeeRuleRequest;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+
+global com.atguigu.daijia.model.vo.rules.FeeRuleResponse feeRuleResponse;
+/*1.起步价
+    00:00:00-06:59:59  19元(含3公里)
+    07:00:00-23:59:59  19元(含5公里)
+*/
+rule "起步价 00:00:00-06:59:59  19元(含3公里)"
+    salience 10
+    no-loop true
+    when
+        $rule:FeeRuleRequest(startTime >= "00:00:00" && startTime <= "06:59:59")
+    then
+      feeRuleResponse.setBaseDistance(new BigDecimal("3.0"));
+      feeRuleResponse.setBaseDistanceFee(new BigDecimal("19"));
+      feeRuleResponse.setExceedDistance(new BigDecimal("0.0"));
+      feeRuleResponse.setExceedDistance(new BigDecimal("4.0"));
+end

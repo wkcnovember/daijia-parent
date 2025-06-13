@@ -35,8 +35,8 @@ public class DriverConstant {
 
     @Getter
     public enum ServiceStatus {
-        NOT_ACCEPTED_ORDERS(0,"未接单"),
-        ACCEPTING_ORDERS(1,"开始接单");
+        NOT_ACCEPTED_ORDERS(0, "未接单"),
+        ACCEPTING_ORDERS(1, "开始接单");
         private final int status;
         private final String description;
 

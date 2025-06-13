@@ -11,6 +11,7 @@ import com.atguigu.daijia.model.vo.driver.DriverLoginVo;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
+import jakarta.validation.constraints.NotBlank;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -26,7 +27,7 @@ public class DriverController {
 
     @Operation(summary = "小程序授权登录")
     @GetMapping("/login/{code}")
-    public Result<String> login(@PathVariable String code) {
+    public Result<String> login(@PathVariable @NotBlank String code) {
         return Result.ok(driverService.login(code));
     }
 

@@ -48,6 +48,7 @@ public enum ResultCodeEnum {
     IMAGE_AUDITION_FAIL( 217, "图片审核不通过"),
     AUTH_ERROR( 217, "认证通过后才可以开启代驾服务"),
     FACE_ERROR( 250, "当日未进行人脸识别"),
+    FACE_VALIDATE_ERROR( 250, "人脸识别失败"),
 
     COUPON_EXPIRE( 250, "优惠券已过期"),
     COUPON_PUBLISH_ERROR( 250, "优惠券已过期,发布失败!"),

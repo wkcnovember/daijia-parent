@@ -3,6 +3,7 @@ package com.atguigu.daijia.order.service.impl;
 import com.atguigu.daijia.common.constant.RedisConstant;
 import com.atguigu.daijia.common.execption.GuiguException;
 import com.atguigu.daijia.common.result.ResultCodeEnum;
+import com.atguigu.daijia.common.util.IdUtils;
 import com.atguigu.daijia.model.convert.order.OrderInfoConvert;
 import com.atguigu.daijia.model.entity.base.BaseEntity;
 import com.atguigu.daijia.model.entity.order.*;
@@ -42,7 +43,6 @@ import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Objects;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import static com.atguigu.daijia.common.constant.RedisConstant.ORDER_ACCEPT_MARK;
@@ -88,7 +88,7 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
     public Long saveOrderInfo(OrderInfoForm orderInfoForm) {
         OrderInfo orderInfo = orderInfoConvert.toOrderInfo(orderInfoForm);
         // 订单号
-        String orderNo = UUID.randomUUID().toString().replaceAll("-", "");
+        String orderNo = IdUtils.fastSimpleUUID();
         orderInfo.setOrderNo(orderNo);
         orderInfo.setStatus(OrderStatus.WAITING_ACCEPT.getStatus());
         save(orderInfo);
@@ -112,10 +112,22 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
     }
 
     @Override
-    public Integer getOrderStatus(Long orderId) {
+    public Integer getOrderStatus(Long orderId, Long id, boolean isDriver) {
+        LambdaQueryWrapper<OrderInfo> eq = new LambdaQueryWrapper<OrderInfo>()
+                .select(OrderInfo::getStatus)
+                .eq(BaseEntity::getId, orderId);
+
+        if (isDriver) {
+            eq.eq(OrderInfo::getDriverId, id);
+        } else {
+            eq.eq(OrderInfo::getCustomerId, id);
+        }
+
         OrderInfo orderInfo =
-                baseMapper.selectOne(new LambdaQueryWrapper<OrderInfo>().eq(BaseEntity::getId, orderId).select(OrderInfo::getStatus));
-        if (orderInfo == null) return OrderStatus.NULL_ORDER.getStatus();
+                baseMapper.selectOne(eq);
+        if (orderInfo == null) {
+            throw new GuiguException(ResultCodeEnum.ILLEGAL_REQUEST);
+        }
 
         return orderInfo.getStatus();
     }
@@ -140,7 +152,6 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
         // 0.0. 创建锁
         final RLock lock = redissonClient.getLock(RedisConstant.ROB_NEW_ORDER_LOCK + orderId);
 
-
         try {
             // 获取锁
             boolean flag = lock.tryLock(RedisConstant.ROB_NEW_ORDER_LOCK_WAIT_TIME,
@@ -150,6 +161,7 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
                 throw new GuiguException(ResultCodeEnum.COB_NEW_ORDER_FAIL);
             }
             // 1.此订单是否存在 + 属于用户的订单吗?
+
 
             Boolean isMember = stringRedisTemplate.opsForSet().isMember(ORDER_ACCEPT_MARK + orderId,
                     driverId.toString());
@@ -174,9 +186,9 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
                             .eq(OrderInfo::getStatus, OrderStatus.WAITING_ACCEPT.getStatus());
             OrderInfo orderInfo = baseMapper.selectOne(wrapper);
             if (orderInfo == null) {
+                log.warn("此订单不存在或已经被抢~");
                 // 清楚脏数据
                 delOrderZsetAndHash(driverId, orderId);
-                log.warn("此订单不存在或已经被抢~");
                 throw new GuiguException(ResultCodeEnum.NOT_EXISTS_ORDER);
 
             }
@@ -487,19 +499,19 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
      */
     @Override
     public void orderCancel(Long orderId) {
-        //orderId查询订单信息
+        // orderId查询订单信息
         LambdaQueryWrapper<OrderInfo> wrapper = new LambdaQueryWrapper<OrderInfo>()
                 .select(BaseEntity::getId, OrderInfo::getStatus)
                 .eq(BaseEntity::getId, orderId);
         OrderInfo orderInfo = baseMapper.selectOne(wrapper);
-        if(orderInfo == null || !Objects.equals(OrderStatus.WAITING_ACCEPT.getStatus(),orderInfo.getStatus())) {
-                return;
+        if (orderInfo == null || !Objects.equals(OrderStatus.WAITING_ACCEPT.getStatus(), orderInfo.getStatus())) {
+            return;
         }
         // 修改订单状态：取消状态
         orderInfo.setStatus(OrderStatus.CANCEL_ORDER.getStatus());
         baseMapper.updateById(orderInfo);
 
-        //删除接单标识
+        // 删除接单标识
 
         stringRedisTemplate.delete(RedisConstant.ORDER_ACCEPT_MARK + orderId);
     }
@@ -518,7 +530,7 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
     @Override
     public Boolean updateCouponAmount(Long orderId, BigDecimal couponAmount) {
         int row = orderBillMapper.updateCouponAmount(orderId, couponAmount);
-        if(row != 1) {
+        if (row != 1) {
             throw new GuiguException(ResultCodeEnum.UPDATE_ERROR);
         }
         return Boolean.TRUE;

@@ -12,6 +12,7 @@ import com.atguigu.daijia.model.vo.driver.DriverSetVo;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.groups.Default;
@@ -36,7 +37,7 @@ public class DriverInfoController {
 
     @Operation(summary = "小程序授权登录")
     @GetMapping("/login/{code}")
-    public Result<Long> login(@PathVariable("code") @NotNull String code) {
+    public Result<Long> login(@PathVariable("code") @NotBlank String code) {
         return Result.ok(driverInfoService.login(code));
     }
 
@@ -65,7 +66,7 @@ public class DriverInfoController {
     // 创建司机人脸模型
     @Operation(summary = "创建司机人脸模型")
     @PostMapping("/creatDriverFaceModel")
-    public Result<Boolean> creatDriverFaceModel(@RequestBody @Validated DriverFaceModelForm driverFaceModelForm) {
+    public Result<Boolean> creatDriverFaceModel(@RequestBody @Validated(value = {Default.class, ServiceGroup.class}) DriverFaceModelForm driverFaceModelForm) {
         Boolean isSuccess = driverInfoService.creatDriverFaceModel(driverFaceModelForm);
         return Result.ok(isSuccess);
     }
