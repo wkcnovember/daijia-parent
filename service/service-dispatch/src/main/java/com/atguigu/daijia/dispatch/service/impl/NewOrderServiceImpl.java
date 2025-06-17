@@ -22,6 +22,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
@@ -123,7 +124,7 @@ public class NewOrderServiceImpl implements NewOrderService {
 
         long time =
                 TimeUtils.toUnixTimestampMillis(newOrderTaskVo.getCreateTime()) + ORDER_ACCEPT_MARK_EXPIRES_MILL_TIME;
-        // 超过15分钟自动取消订单
+        // 超过15分钟自动取消订单(延迟队列实现拉)
         Long orderId = newOrderTaskVo.getOrderId();
         if (TimeUtils.toUnixTimestampMillis(LocalDateTime.now()) > time) {
             // 停止并删除任务调度
@@ -150,45 +151,72 @@ public class NewOrderServiceImpl implements NewOrderService {
         nearByDriverRes.throwOnFailure();
 
         List<NearByDriverVo> data = nearByDriverRes.getData();
+        if (CollectionUtils.isEmpty(data)) {
+            return;
+        }
 
-        if (!CollectionUtils.isEmpty(data)) {
+        NewOrderDataVo newOrderDataVo = new NewOrderDataVo();
+        newOrderDataVo.setOrderId(newOrderTaskVo.getOrderId());
+        newOrderDataVo.setStartLocation(newOrderTaskVo.getStartLocation());
+        newOrderDataVo.setEndLocation(newOrderTaskVo.getEndLocation());
+        newOrderDataVo.setExpectAmount(newOrderTaskVo.getExpectAmount());
+        newOrderDataVo.setExpectDistance(newOrderTaskVo.getExpectDistance());
+        newOrderDataVo.setExpectTime(newOrderTaskVo.getExpectTime());
+        newOrderDataVo.setFavourFee(newOrderTaskVo.getFavourFee());
+        newOrderDataVo.setCreateTime(newOrderTaskVo.getCreateTime());
+
+        //  管道 +  lua 推送
+        stringRedisTemplate.executePipelined((RedisCallback<Object>) connection -> {
             data.forEach(driver -> {
                 Long driverId = driver.getDriverId();
                 // 记录司机id，防止重复推送
-                Boolean isMember = stringRedisTemplate.opsForSet().isMember(ORDER_ACCEPT_MARK + orderId,
-                        driverId.toString());
-                // String key = RedisConstant.DRIVER_ORDER_INFO_HASH + driverId;
-                // Boolean isMember = stringRedisTemplate.opsForHash().hasKey(key, orderId.toString());
-                if (Boolean.FALSE.equals(isMember)) {
-                    // 把订单信息推送给满足条件多个司机
-                    // stringRedisTemplate.opsForSet().add(repeatKey, driverId.toString());
-                    NewOrderDataVo newOrderDataVo = new NewOrderDataVo();
-                    newOrderDataVo.setOrderId(newOrderTaskVo.getOrderId());
-                    newOrderDataVo.setStartLocation(newOrderTaskVo.getStartLocation());
-                    newOrderDataVo.setEndLocation(newOrderTaskVo.getEndLocation());
-                    newOrderDataVo.setExpectAmount(newOrderTaskVo.getExpectAmount());
-                    newOrderDataVo.setExpectDistance(newOrderTaskVo.getExpectDistance());
-                    newOrderDataVo.setExpectTime(newOrderTaskVo.getExpectTime());
-                    newOrderDataVo.setFavourFee(newOrderTaskVo.getFavourFee());
-                    newOrderDataVo.setDistance(driver.getDistance());
-                    newOrderDataVo.setCreateTime(newOrderTaskVo.getCreateTime());
+                // Boolean isMember = stringRedisTemplate.opsForSet().isMember(ORDER_ACCEPT_MARK + orderId,
+                //         driverId.toString());
+                // if (Boolean.FALSE.equals(isMember)) {
+                // 把订单信息推送给满足条件多个司机
+                newOrderDataVo.setDistance(driver.getDistance());
+                Long execute = stringRedisTemplate.execute(addDriverOrders,
+                        Collections.emptyList(),
+                        orderId.toString(),
+                        driverId.toString(),
+                        String.valueOf(TimeUtils.toUnixTimestampMillis(newOrderTaskVo.getCreateTime())),
+                        JSON.toJSONString(newOrderDataVo),
+                        String.valueOf(DRIVER_ORDER_TEMP_LIST_EXPIRES_TIME)
+                );
+                log.info("订单加入到司机缓存中结果={}", execute);
 
-
-                    Long execute = stringRedisTemplate.execute(addDriverOrders,
-                            Collections.emptyList(),
-                            orderId.toString(),
-                            driverId.toString(),
-                            String.valueOf(TimeUtils.toUnixTimestampMillis(newOrderTaskVo.getCreateTime())),
-                            JSON.toJSONString(newOrderDataVo),
-                            String.valueOf(DRIVER_ORDER_TEMP_LIST_EXPIRES_TIME)
-                    );
-                    log.info("订单加入到司机缓存中结果={}", execute);
-
-                }
+                // }
 
 
             });
-        }
+
+            return null;
+        });
+
+
+        // data.forEach(driver -> {
+        //     Long driverId = driver.getDriverId();
+        //     // 记录司机id，防止重复推送
+        //     Boolean isMember = stringRedisTemplate.opsForSet().isMember(ORDER_ACCEPT_MARK + orderId,
+        //             driverId.toString());
+        //     if (Boolean.FALSE.equals(isMember)) {
+        //         // 把订单信息推送给满足条件多个司机
+        //         newOrderDataVo.setDistance(driver.getDistance());
+        //
+        //         Long execute = stringRedisTemplate.execute(addDriverOrders,
+        //                 Collections.emptyList(),
+        //                 orderId.toString(),
+        //                 driverId.toString(),
+        //                 String.valueOf(TimeUtils.toUnixTimestampMillis(newOrderTaskVo.getCreateTime())),
+        //                 JSON.toJSONString(newOrderDataVo),
+        //                 String.valueOf(DRIVER_ORDER_TEMP_LIST_EXPIRES_TIME)
+        //         );
+        //         log.info("订单加入到司机缓存中结果={}", execute);
+        //
+        //     }
+        //
+        //
+        // });
 
     }
 
@@ -202,14 +230,13 @@ public class NewOrderServiceImpl implements NewOrderService {
 
         // 查最近的15分钟内的订单
         Set<String> orderIdsJson = stringRedisTemplate.opsForZSet().reverseRangeByScore(key, min,
-                System.currentTimeMillis());
+                Double.MAX_VALUE);
         if (CollectionUtils.isEmpty(orderIdsJson)) {
             return Collections.emptyList();
-
         }
 
-        List<Object> objects = stringRedisTemplate.opsForHash().multiGet(k2, new ArrayList<>(orderIdsJson));
-        List<NewOrderDataVo> newOrderDataVos = JSON.parseArray(objects.toString(), NewOrderDataVo.class);
+        List<Object> orderDetails = stringRedisTemplate.opsForHash().multiGet(k2, new ArrayList<>(orderIdsJson));
+        List<NewOrderDataVo> newOrderDataVos = JSON.parseArray(orderDetails.toString(), NewOrderDataVo.class);
         return newOrderDataVos;
     }
 

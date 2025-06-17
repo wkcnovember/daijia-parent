@@ -92,7 +92,7 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
         orderInfo.setOrderNo(orderNo);
         orderInfo.setStatus(OrderStatus.WAITING_ACCEPT.getStatus());
         save(orderInfo);
-        // 生成订单之后，发送延迟消息
+        // 生成订单之后，发送延迟消息(处理订单超时)
         orderDelayService.addOrderToDelayQueue(orderInfo.getId().toString());
 
         // 记录日志
@@ -148,7 +148,6 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
     @Override
     public Boolean robNewOrder(Long driverId, Long orderId) {
 
-
         // 0.0. 创建锁
         final RLock lock = redissonClient.getLock(RedisConstant.ROB_NEW_ORDER_LOCK + orderId);
 
@@ -162,7 +161,6 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
             }
             // 1.此订单是否存在 + 属于用户的订单吗?
 
-
             Boolean isMember = stringRedisTemplate.opsForSet().isMember(ORDER_ACCEPT_MARK + orderId,
                     driverId.toString());
 
@@ -175,7 +173,6 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
 
             }
 
-
             // 最终校验订单的合法性
             LambdaQueryWrapper<OrderInfo> wrapper =
                     new LambdaQueryWrapper<OrderInfo>()
@@ -183,7 +180,8 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
                                     OrderInfo::getCustomerId,
                                     OrderInfo::getStatus)
                             .eq(BaseEntity::getId, orderId)
-                            .eq(OrderInfo::getStatus, OrderStatus.WAITING_ACCEPT.getStatus());
+                            .eq(OrderInfo::getStatus, OrderStatus.WAITING_ACCEPT.getStatus())
+                            .isNull(OrderInfo::getDriverId);
             OrderInfo orderInfo = baseMapper.selectOne(wrapper);
             if (orderInfo == null) {
                 log.warn("此订单不存在或已经被抢~");
@@ -191,13 +189,6 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
                 delOrderZsetAndHash(driverId, orderId);
                 throw new GuiguException(ResultCodeEnum.NOT_EXISTS_ORDER);
 
-            }
-            // 订单不在接单状态 删除redis对应的order缓存
-            if (!Objects.equals(OrderStatus.WAITING_ACCEPT.getStatus(), orderInfo.getStatus())) {
-                log.warn("此订单处于非等待状态~");
-                // 清楚脏数据
-                delOrderZsetAndHash(driverId, orderId);
-                throw new GuiguException(ResultCodeEnum.NOT_EXISTS_ORDER);
             }
             // 修改订单信息
             orderInfo.setDriverId(driverId);
@@ -214,7 +205,7 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
             log(orderId, orderInfo.getStatus());
 
             // 删除订单对应的标示
-            stringRedisTemplate.delete(ORDER_ACCEPT_MARK + orderId);
+            stringRedisTemplate.unlink(ORDER_ACCEPT_MARK + orderId);
 
             return Boolean.TRUE;
 

@@ -206,37 +206,19 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public Boolean driverArriveStartLocation(Long orderId, Long driverId) {
 
-
-        try {
-            CompletableFuture<OrderInfo> orderInfoFuture = getOrderInfoCompletableFuture(orderId, driverId)
-                    .orTimeout(2, TimeUnit.SECONDS);
-
-            CompletableFuture<OrderLocationVo> orderLocationVoFuture = CompletableFuture.supplyAsync(() -> {
-                Result<OrderLocationVo> cacheOrderLocationRes = locationFeignClient.getCacheOrderLocation(orderId);
-                return cacheOrderLocationRes.throwOnFailureOrDataIsNull().getData();
-            }, sharedThreadPool);
-
-
-            OrderInfo orderInfo = orderInfoFuture.get(2, TimeUnit.SECONDS);
-            OrderLocationVo location = orderLocationVoFuture.get(2, TimeUnit.SECONDS);
-            // ❌防止刷单，计算司机的经纬度与代驾的起始经纬度是否在1公里范围内
-            validateDistance(orderInfo, location);
-            // 开始代驾
-            Result<Boolean> result = orderInfoFeignClient.driverArriveStartLocation(orderId, driverId);
-            return result.throwOnFailureOrDataIsNull().getData();
-        } catch (TimeoutException e) {
-            throw new GuiguException(ResultCodeEnum.REMOTE_TIMEOUT);
-        } catch (ExecutionException e) {
-            if (e.getCause() instanceof GuiguException) {
-                throw (GuiguException) e.getCause();
-            }
-            throw new GuiguException(ResultCodeEnum.SYSTEM_ERROR);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            log.warn("Task interrupted", e); // 记录中断日志
-            throw new GuiguException(ResultCodeEnum.SYSTEM_ERROR);
-        }
-
+        Result<OrderInfo> orderInfoRes = orderInfoFeignClient.getOrderInfo(orderId);
+        OrderInfo orderInfo = orderInfoRes
+                .throwOnFailureOrDataIsNull()
+                .getData();
+        // 校验订单合法性
+        validateDriverOrder(driverId, orderInfo);
+        OrderLocationVo location =
+                locationFeignClient.getCacheOrderLocation(orderId).throwOnFailureOrDataIsNull().getData();
+        // ❌防止刷单，计算司机的经纬度与代驾的起始经纬度是否在1公里范围内
+        validateDistance(orderInfo, location);
+        // 开始代驾
+        Result<Boolean> result = orderInfoFeignClient.driverArriveStartLocation(orderId, driverId);
+        return result.throwOnFailureOrDataIsNull().getData();
 
     }
 
@@ -267,8 +249,7 @@ public class OrderServiceImpl implements OrderService {
             throw new GuiguException(ResultCodeEnum.ILLEGAL_REQUEST);
         }
         Result<Boolean> result = orderInfoFeignClient.updateOrderCart(updateOrderCartForm);
-        result.throwOnFailureOrDataIsNull();
-        return result.getData();
+        return result.throwOnFailureOrDataIsNull().getData();
     }
 
     @Override

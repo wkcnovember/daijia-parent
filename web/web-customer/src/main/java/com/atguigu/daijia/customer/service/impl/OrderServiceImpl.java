@@ -228,14 +228,12 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public DriverInfoVo getDriverInfo(Long orderId, Long customerId) {
         Result<OrderInfo> orderInfoResult = orderInfoFeignClient.getOrderInfo(orderId);
-        orderInfoResult.throwOnFailureOrDataIsNull();
-        OrderInfo orderInfo = orderInfoResult.getData();
+        OrderInfo orderInfo = orderInfoResult.throwOnFailureOrDataIsNull().getData();
         if (!Objects.equals(orderInfo.getCustomerId(), customerId)) {
             throw new GuiguException(ResultCodeEnum.ILLEGAL_REQUEST);
         }
         Result<DriverInfoVo> driverInfoVo = driverInfoFeignClient.getDriverInfoVo(orderInfo.getDriverId());
-        driverInfoVo.throwOnFailureOrDataIsNull();
-        return driverInfoVo.getData();
+        return driverInfoVo.throwOnFailureOrDataIsNull().getData();
     }
 
     @Override
@@ -257,6 +255,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public OrderServiceLastLocationVo getOrderServiceLastLocation(Long customerId, Long orderId) {
+        // 可以再加个状态校验
         Result<Boolean> result = orderInfoFeignClient.isCustomerCurrentOrder(customerId, orderId);
         result.throwOnFailureOrDataIsNull();
         if (Boolean.FALSE.equals(result.getData())) {
@@ -264,8 +263,7 @@ public class OrderServiceImpl implements OrderService {
         }
         Result<OrderServiceLastLocationVo> orderServiceLastLocation =
                 locationFeignClient.getOrderServiceLastLocation(orderId);
-        orderServiceLastLocation.throwOnFailureOrDataIsNull();
-        return orderServiceLastLocation.getData();
+        return orderServiceLastLocation.throwOnFailureOrDataIsNull().getData();
     }
 
     @Override

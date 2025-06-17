@@ -230,18 +230,21 @@ public class LocationServiceImpl implements LocationService {
         List<OrderServiceLocation> orderServiceLocations =
                 orderServiceLocationRepository.getByOrderIdOrderByCreateTimeAsc(orderId);
         if (CollectionUtils.isEmpty(orderServiceLocations)) {
-            return new BigDecimal("0.0");
+            return BigDecimal.ZERO;
         }
         double realDistance = 0;
         // 总两点距离
-        for (int i = 0, size = orderServiceLocations.size() - 1; i < size; i++) {
-            OrderServiceLocation location1 = orderServiceLocations.get(i);
-            OrderServiceLocation location2 = orderServiceLocations.get(i + 1);
-
-            double distance = LocationUtil.getDistance(location1.getLatitude().doubleValue(),
-                    location1.getLongitude().doubleValue(), location2.getLatitude().doubleValue(),
-                    location2.getLongitude().doubleValue());
-            realDistance += distance;
+        OrderServiceLocation prevLocation = null;
+        for (OrderServiceLocation currentLocation : orderServiceLocations) {
+            if (prevLocation != null) {
+                realDistance += LocationUtil.getDistance(
+                        prevLocation.getLatitude().doubleValue(),
+                        prevLocation.getLongitude().doubleValue(),
+                        currentLocation.getLatitude().doubleValue(),
+                        currentLocation.getLongitude().doubleValue()
+                );
+            }
+            prevLocation = currentLocation;
         }
         // 测试过程中，没有真正代驾，实际代驾GPS位置没有变化，模拟：实际代驾里程 = 预期里程 + 5
         if (realDistance == 0) {

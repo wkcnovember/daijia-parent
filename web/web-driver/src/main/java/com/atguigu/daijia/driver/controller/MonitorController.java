@@ -10,14 +10,14 @@ import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 @Slf4j
 @Tag(name = "监控接口管理")
 @RestController
-@RequestMapping(value="/monitor")
+@RequestMapping(value = "/monitor")
 public class MonitorController {
 
     @Resource
@@ -26,7 +26,7 @@ public class MonitorController {
     @Operation(summary = "微信同声传译上传录音")
     @PostMapping("/upload")
     @KjyLogin
-    public Result<Boolean> upload(@RequestParam("file") MultipartFile file,
+    public Result<Boolean> upload(@RequestPart("file") MultipartFile file,
                                   OrderMonitorForm orderMonitorForm) {
 
         return Result.ok(monitorService.upload(file, orderMonitorForm));

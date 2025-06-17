@@ -35,9 +35,7 @@ public class CouponPreheatService {
     private static final String STOCK_KEY = "c:s:";
     // 用户键
     private static final String USER_KEY = "u:m:";
-    // private static final String LIMIT_KEY = "c:l:";
-    // private static final String PREHEAT_LOCK = "preheat:lock:";
-    // private static final String PREHEAT_MARK = "preheat:mark:";
+
 
     public static void main(String[] args) {
         LocalDateTime now = LocalDateTime.now();
@@ -76,7 +74,7 @@ public class CouponPreheatService {
                 stringRedisTemplate.opsForValue().set(STOCK_KEY + couponId + ":" + i, String.valueOf(segmentStock),
                         ttlSeconds, TimeUnit.SECONDS);
             }
-        }else {
+        } else {
             couponInfoVo.setSegmentCount(0);
         }
 

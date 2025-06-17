@@ -80,9 +80,7 @@ public class LocationServiceImpl implements LocationService {
             throw new GuiguException(ResultCodeEnum.ILLEGAL_REQUEST);
         }
 
-
         Result<Boolean> result = locationFeignClient.saveOrderServiceLocation(orderLocationServiceFormList);
-        result.throwOnFailureOrDataIsNull();
-        return result.getData();
+        return result.throwOnFailureOrDataIsNull().getData();
     }
 }

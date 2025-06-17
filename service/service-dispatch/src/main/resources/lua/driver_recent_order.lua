@@ -40,6 +40,11 @@ local driverId = ARGV[2]
 local driver_order_id_zset = "driver:zet:orders:" .. driverId
 local driver_order_info_hash = "driver:hash:orders:" .. driverId
 local ORDER_ACCEPT_MARK = "o:a:m:" .. orderId
+
+if redis.call('SISMEMBER', ORDER_ACCEPT_MARK, driverId) == 0 then
+    return 0
+end
+
 -- 符合订单条件的司机
 redis.call('SADD', ORDER_ACCEPT_MARK, driverId)
 redis.call("ZADD", driver_order_id_zset, tonumber(ARGV[3]), orderId)
