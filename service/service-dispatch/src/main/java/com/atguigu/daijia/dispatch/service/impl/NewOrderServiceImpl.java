@@ -172,8 +172,6 @@ public class NewOrderServiceImpl implements NewOrderService {
                 Long driverId = driver.getDriverId();
                 // 把订单信息推送给满足条件多个司机
                 newOrderDataVo.setDistance(driver.getDistance());
-
-
                 connection.commands().eval(
                         addDriverOrders.getScriptAsString().getBytes(),
                         ReturnType.INTEGER, // 根据脚本实际返回类型调整

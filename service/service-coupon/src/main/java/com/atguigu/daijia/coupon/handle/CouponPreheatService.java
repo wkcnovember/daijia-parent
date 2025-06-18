@@ -7,14 +7,16 @@ import com.atguigu.daijia.common.result.ResultCodeEnum;
 import com.atguigu.daijia.model.vo.coupon.CouponInfoVo;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.connection.ReturnType;
+import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Map;
-import java.util.Random;
-import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * @Author 柯佳元
@@ -34,8 +36,9 @@ public class CouponPreheatService {
     // 库存分段
     private static final String STOCK_KEY = "c:s:";
     // 用户键
-    private static final String USER_KEY = "u:m:";
 
+    @Resource(name = "preheatStock")
+    private DefaultRedisScript<Long> preheatStock;
 
     public static void main(String[] args) {
         LocalDateTime now = LocalDateTime.now();
@@ -55,43 +58,45 @@ public class CouponPreheatService {
             throw new GuiguException(ResultCodeEnum.COUPON_PUBLISH_ERROR);
         }
 
-        ttlSeconds = ttlSeconds + new Random().nextInt(10, 300);
-        // 2. 库存分段存储（减少竞争）
-        if (couponInfoVo.getPublishCount() > 0) {
-            // 2.1 计算可用库存
-            int availableStock = couponInfoVo.getPublishCount() - couponInfoVo.getReceiveCount();
-            // 2.2 计算分段数量
-            int segments = Math.max(1, (int) Math.ceil(availableStock / 100.0));
-            couponInfoVo.setSegmentCount(segments);
-            /**
-             * 段库存计算：
-             * 前n-1段：每段100个库存
-             * 最后一段：剩余所有库存（可能少于100）
-             */
-            for (int i = 0; i < segments; i++) {
-                int segmentStock = (i == segments - 1) ?
-                        availableStock - i * 100 : 100;
-                stringRedisTemplate.opsForValue().set(STOCK_KEY + couponId + ":" + i, String.valueOf(segmentStock),
-                        ttlSeconds, TimeUnit.SECONDS);
+        // 管道推送
+        stringRedisTemplate.executePipelined((RedisCallback<Object>) connection -> {
+            // 2. 库存分段存储（减少竞争）
+            if (couponInfoVo.getPublishCount() > 0) {
+                // 2.1 计算可用库存
+                int availableStock = couponInfoVo.getPublishCount() - couponInfoVo.getReceiveCount();
+                // 2.2 计算分段数量
+                int segments = Math.max(1, (int) Math.ceil(availableStock / 100.0));
+                int lastSegmentStock = (availableStock % 100 == 0) ? 100 : (availableStock % 100);
+                couponInfoVo.setSegmentCount(segments);
+                connection.commands().eval(
+                        preheatStock.getScriptAsString().getBytes(),
+                        ReturnType.INTEGER,
+                        1,
+                        (STOCK_KEY + couponId).getBytes(),
+                        String.valueOf(segments).getBytes(),
+                        String.valueOf(ttlSeconds).getBytes(),
+                        String.valueOf(lastSegmentStock).getBytes(),
+                        String.valueOf(System.currentTimeMillis()).getBytes() // 随机种子
+                );
+            } else {
+                couponInfoVo.setSegmentCount(0);
             }
-        } else {
-            couponInfoVo.setSegmentCount(0);
-        }
 
+            // 2.2 存储优惠券信息
+            Map<byte[], byte[]> couponMap = JSON.parseObject(
+                            JSON.toJSONString(couponInfoVo),
+                            new TypeReference<Map<String, String>>() {
+                            }
+                    ).entrySet().stream()
+                    .collect(Collectors.toMap(
+                            e -> e.getKey().getBytes(),
+                            e -> e.getValue().getBytes()
+                    ));
+            connection.commands().hMSet((COUPON_KEY + couponId).getBytes(), couponMap);
+            connection.commands().expire((COUPON_KEY + couponId).getBytes(), ttlSeconds);
 
-        // 使用Fastjson将对象转为Map
-        String jsonString = JSON.toJSONString(couponInfoVo);
-        Map<String, String> couponMap = JSON.parseObject(
-                jsonString,
-                new TypeReference<>() {
-                }
-        );
-
-        stringRedisTemplate.opsForHash().putAll(COUPON_KEY + couponId, couponMap);
-        Boolean expire = stringRedisTemplate.expire(COUPON_KEY + couponId, ttlSeconds, TimeUnit.SECONDS);
-        if (Boolean.FALSE.equals(expire)) {
-            throw new GuiguException(ResultCodeEnum.UPDATE_ERROR);
-        }
+            return null;
+        });
 
 
         return Boolean.TRUE;

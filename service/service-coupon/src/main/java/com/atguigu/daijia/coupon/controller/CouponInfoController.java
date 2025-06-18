@@ -87,10 +87,9 @@ public class CouponInfoController {
     @GetMapping("/receive/{customerId}/{couponId}")
     public Result<LuaResult> receive(@PathVariable("customerId") @NotNull @Positive Long customerId,
                                      @PathVariable("couponId") @NotNull @Positive Long couponId) {
+
         return Result.ok(couponInfoService.receive(customerId, couponId));
     }
-
-
 
 
     @Operation(summary = "获取未使用的最佳优惠券信息")

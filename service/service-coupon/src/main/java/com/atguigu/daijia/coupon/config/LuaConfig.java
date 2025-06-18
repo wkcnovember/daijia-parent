@@ -20,4 +20,13 @@ public class LuaConfig {
         return script;
     }
 
+    @Bean(name = "preheatStock")
+    public DefaultRedisScript<Long> preheatStock() {
+        DefaultRedisScript<Long> script = new DefaultRedisScript<>();
+        script.setScriptSource(new ResourceScriptSource(
+                new ClassPathResource("lua/preHeat_stock.lua")));
+        script.setResultType(Long.class); // 返回值类型
+        return script;
+    }
+
 }

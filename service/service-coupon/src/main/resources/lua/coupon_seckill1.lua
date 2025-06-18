@@ -12,7 +12,7 @@ local couponKey = "c:" .. ARGV[1]
 local userKey = "u:m:" .. ARGV[2]
 
 -- 库存分段
-local segKey = "c:s:" .. ARGV[1] .. ":"
+local segKey = "c:s:" .. ARGV[1]
 
 -- 当前时间
 local nowTime = ARGV[3]
@@ -25,7 +25,7 @@ local couponData = redis.call('HMGET', couponKey,
 )
 
 -- 1. 检查优惠券基本信息
-if not couponData[1]  then
+if not couponData[1] then
     return { -1, '优惠券不存在' }
 end
 
@@ -74,14 +74,9 @@ if publishCount == 0 then
     return { 1, '领取成功' }
 end
 
-
 if publishCount > 0 and publishCount == receiveCount then
     return { -6, '库存不足' }
 end
-
-
-
-
 
 local segmentCount = tonumber(couponData[7])
 -- 6. 分段库存扣减
@@ -90,21 +85,33 @@ local startSeg = math.random(0, segmentCount - 1)
 local acquired = false
 
 for i = 0, segmentCount - 1 do
-    local currentSeg = (startSeg + i) % segmentCount
-    local stockKey = segKey .. currentSeg
-    local stock = tonumber(redis.call('GET', stockKey)) or 0
+    local segId = (startSeg + i) % segmentCount
+    local stock = tonumber(redis.call('HGET', segKey, "seg_" .. segId)) or 0
 
+    -- 原子扣减（Lua内保证原子性）
     if stock > 0 then
-        -- 使用原子性操作检查并扣减
-        if redis.call('DECR', stockKey) >= 0 then
-            acquired = true
-            break
-        else
-            -- 如果扣减后小于0，回滚
-            redis.call('INCR', stockKey)
-        end
+        redis.call('HSET', segKey, "seg_" .. segId, stock - 1)
+        acquired = true
+        break
     end
 end
+
+--for i = 0, segmentCount - 1 do
+--    local currentSeg = (startSeg + i) % segmentCount
+--    local stockKey = segKey .. currentSeg
+--    local stock = tonumber(redis.call('GET', stockKey)) or 0
+--
+--    if stock > 0 then
+--        -- 使用原子性操作检查并扣减
+--        if redis.call('DECR', stockKey) >= 0 then
+--            acquired = true
+--            break
+--        else
+--            -- 如果扣减后小于0，回滚
+--            redis.call('INCR', stockKey)
+--        end
+--    end
+--end
 
 if not acquired then
     return { -6, '库存不足' }

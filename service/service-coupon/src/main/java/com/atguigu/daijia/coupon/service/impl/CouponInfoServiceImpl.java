@@ -6,6 +6,7 @@ import com.atguigu.daijia.common.execption.GuiguException;
 import com.atguigu.daijia.common.result.ResultCodeEnum;
 import com.atguigu.daijia.common.service.RabbitService;
 import com.atguigu.daijia.coupon.config.LuaResult;
+import com.atguigu.daijia.coupon.config.TimeUtils;
 import com.atguigu.daijia.coupon.handle.CouponPreheatService;
 import com.atguigu.daijia.coupon.mapper.CouponInfoMapper;
 import com.atguigu.daijia.coupon.mapper.CustomerCouponMapper;
@@ -39,8 +40,10 @@ import org.springframework.util.CollectionUtils;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
-import java.util.*;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Objects;
 
 @Service
 @Slf4j
@@ -67,8 +70,6 @@ public class CouponInfoServiceImpl extends ServiceImpl<CouponInfoMapper, CouponI
     private RabbitService rabbitService;
 
 
-
-
     @Override
     public PageVo<NoReceiveCouponVo> findNoReceivePage(Page<CouponInfo> pageParam, Long customerId) {
         IPage<NoReceiveCouponVo> pageInfo = baseMapper.findNoReceivePage(pageParam, customerId);
@@ -89,12 +90,11 @@ public class CouponInfoServiceImpl extends ServiceImpl<CouponInfoMapper, CouponI
 
 
     @Override
-    @Transactional
     public LuaResult receive(Long customerId, Long couponId) {
         List raw = stringRedisTemplate.execute(couponSecKill, Collections.emptyList(),
                 couponId.toString(),
                 customerId.toString(),
-                String.valueOf(LocalDateTime.now().toEpochSecond(ZoneOffset.UTC)));
+                String.valueOf(TimeUtils.toUnixTimestamp(LocalDateTime.now())));
 
         LuaResult res = new LuaResult();
         if (raw != null && raw.size() >= 2) {
@@ -113,7 +113,8 @@ public class CouponInfoServiceImpl extends ServiceImpl<CouponInfoMapper, CouponI
     }
 
     /**
-     *  发送消息~
+     * 发送消息~
+     *
      * @param customerId
      * @param couponId
      */
@@ -323,7 +324,7 @@ public class CouponInfoServiceImpl extends ServiceImpl<CouponInfoMapper, CouponI
                 .select(BaseEntity::getId, CouponInfo::getExpireTime)
                 .eq(BaseEntity::getId, couponId);
         CouponInfo couponInfo = baseMapper.selectOne(eq);
-        if(couponInfo == null) {
+        if (couponInfo == null) {
             log.error("此优惠券不存在");
             throw new GuiguException(ResultCodeEnum.ILLEGAL_REQUEST);
         }
@@ -339,14 +340,14 @@ public class CouponInfoServiceImpl extends ServiceImpl<CouponInfoMapper, CouponI
         customerCoupon.setExpireTime(couponInfo.getExpireTime());
         int insert = customerCouponMapper.insert(customerCoupon);
 
-        if(insert != 1) {
-            log.error("优惠券=>{}添加到用户=>{}失败",couponId,customerId);
+        if (insert != 1) {
+            log.error("优惠券=>{}添加到用户=>{}失败", couponId, customerId);
             throw new GuiguException(ResultCodeEnum.UPDATE_ERROR);
         }
         // 增加优惠券的领取数量
         int update = baseMapper.incrReceiveCount(couponId);
-        if(update != 1) {
-            log.error("优惠券=>{}添加到用户=>{}失败",couponId,customerId);
+        if (update != 1) {
+            log.error("优惠券=>{}添加到用户=>{}失败", couponId, customerId);
             throw new GuiguException(ResultCodeEnum.UPDATE_ERROR);
         }
     }
