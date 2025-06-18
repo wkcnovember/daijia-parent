@@ -1,5 +1,6 @@
 package com.kjy.ali.api;
 
+import com.alibaba.fastjson.JSON;
 import com.alipay.api.AlipayApiException;
 import com.alipay.api.AlipayClient;
 import com.alipay.api.DefaultAlipayClient;
@@ -8,6 +9,10 @@ import com.kjy.ali.config.AlipayConfigProperties;
 import com.kjy.ali.vo.PayVo;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
+
+import java.util.HashMap;
+import java.util.Map;
 
 
 @Slf4j
@@ -15,7 +20,6 @@ public class AlipayClientTemplate {
 
     @Resource
     private AlipayConfigProperties alipayConfigProperties;
-
 
 
     public AlipayClient alipayClient() {
@@ -56,12 +60,15 @@ public class AlipayClientTemplate {
         // alipayRequest.setBizModel(model);
 
 
-        alipayRequest.setBizContent("{\"out_trade_no\":\""+ out_trade_no +"\","
-                + "\"total_amount\":\""+ total_amount +"\","
-                + "\"subject\":\""+ subject +"\","
-                + "\"body\":\""+ body +"\","
-                + "\"timeout_express\":\""+"2m"+"\","
-                + "\"product_code\":\"FAST_INSTANT_TRADE_PAY\"}");
+        Map<String, Object> bizContent = new HashMap<>();
+        bizContent.put("out_trade_no", out_trade_no);
+        bizContent.put("total_amount", total_amount);
+        bizContent.put("subject", StringUtils.left(subject, 256));
+        bizContent.put("body", body);
+        bizContent.put("timeout_express", "2m");
+        bizContent.put("product_code", "FAST_INSTANT_TRADE_PAY");
+
+        alipayRequest.setBizContent(JSON.toJSONString(bizContent));
 
         String result = alipayClient.pageExecute(alipayRequest).getBody();
 

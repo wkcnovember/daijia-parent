@@ -22,6 +22,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.data.redis.connection.ReturnType;
 import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
@@ -166,57 +167,33 @@ public class NewOrderServiceImpl implements NewOrderService {
         newOrderDataVo.setCreateTime(newOrderTaskVo.getCreateTime());
 
         //  管道 +  lua 推送
-        stringRedisTemplate.executePipelined((RedisCallback<Object>) connection -> {
+        List<Object> results = stringRedisTemplate.executePipelined((RedisCallback<Object>) connection -> {
             data.forEach(driver -> {
                 Long driverId = driver.getDriverId();
-                // 记录司机id，防止重复推送
-                // Boolean isMember = stringRedisTemplate.opsForSet().isMember(ORDER_ACCEPT_MARK + orderId,
-                //         driverId.toString());
-                // if (Boolean.FALSE.equals(isMember)) {
                 // 把订单信息推送给满足条件多个司机
                 newOrderDataVo.setDistance(driver.getDistance());
-                Long execute = stringRedisTemplate.execute(addDriverOrders,
-                        Collections.emptyList(),
-                        orderId.toString(),
-                        driverId.toString(),
-                        String.valueOf(TimeUtils.toUnixTimestampMillis(newOrderTaskVo.getCreateTime())),
-                        JSON.toJSONString(newOrderDataVo),
-                        String.valueOf(DRIVER_ORDER_TEMP_LIST_EXPIRES_TIME)
+
+
+                connection.commands().eval(
+                        addDriverOrders.getScriptAsString().getBytes(),
+                        ReturnType.INTEGER, // 根据脚本实际返回类型调整
+                        0, // KEYS数量
+                        String.valueOf(orderId).getBytes(),
+                        String.valueOf(driverId).getBytes(),
+                        String.valueOf(TimeUtils.toUnixTimestampMillis(newOrderTaskVo.getCreateTime())).getBytes(),
+                        JSON.toJSONString(newOrderDataVo).getBytes(),
+                        String.valueOf(DRIVER_ORDER_TEMP_LIST_EXPIRES_TIME).getBytes()
                 );
-                log.info("订单加入到司机缓存中结果={}", execute);
-
-                // }
-
-
             });
 
             return null;
         });
+        // 处理结果
+        for (int i = 0; i < data.size(); i++) {
+            Long result = (Long) results.get(i);
+            log.info("订单加入到司机缓存中结果={}", result);
+        }
 
-
-        // data.forEach(driver -> {
-        //     Long driverId = driver.getDriverId();
-        //     // 记录司机id，防止重复推送
-        //     Boolean isMember = stringRedisTemplate.opsForSet().isMember(ORDER_ACCEPT_MARK + orderId,
-        //             driverId.toString());
-        //     if (Boolean.FALSE.equals(isMember)) {
-        //         // 把订单信息推送给满足条件多个司机
-        //         newOrderDataVo.setDistance(driver.getDistance());
-        //
-        //         Long execute = stringRedisTemplate.execute(addDriverOrders,
-        //                 Collections.emptyList(),
-        //                 orderId.toString(),
-        //                 driverId.toString(),
-        //                 String.valueOf(TimeUtils.toUnixTimestampMillis(newOrderTaskVo.getCreateTime())),
-        //                 JSON.toJSONString(newOrderDataVo),
-        //                 String.valueOf(DRIVER_ORDER_TEMP_LIST_EXPIRES_TIME)
-        //         );
-        //         log.info("订单加入到司机缓存中结果={}", execute);
-        //
-        //     }
-        //
-        //
-        // });
 
     }
 

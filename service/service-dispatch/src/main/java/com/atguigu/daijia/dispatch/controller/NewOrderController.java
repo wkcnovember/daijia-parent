@@ -22,17 +22,18 @@ import java.util.List;
 public class NewOrderController {
 
 
-
     @Resource
     private NewOrderService newOrderService;
 
-    //创建并启动任务调度方法
+
+    // 创建并启动任务调度方法
     @Operation(summary = "添加并开始新订单任务调度")
     @PostMapping("/addAndStartTask")
     public Result<Long> addAndStartTask(@RequestBody @Validated NewOrderTaskVo newOrderTaskVo) {
         Long id = newOrderService.addAndStartTask(newOrderTaskVo);
         return Result.ok(id);
     }
+
     @Operation(summary = "查询司机新订单数据")
     @GetMapping("/findNewOrderQueueData/{driverId}")
     public Result<List<NewOrderDataVo>> findNewOrderQueueData(@PathVariable("driverId") @NotNull Long driverId) {
@@ -44,7 +45,6 @@ public class NewOrderController {
     public Result<Boolean> clearNewOrderQueueData(@PathVariable("driverId") @NotNull Long driverId) {
         return Result.ok(newOrderService.clearNewOrderQueueData(driverId));
     }
-
 
 
 }
