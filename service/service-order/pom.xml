@@ -19,6 +19,11 @@
 
     <dependencies>
         <dependency>
+            <groupId>com.atguigu.daijia</groupId>
+            <artifactId>rabbit-util</artifactId>
+            <version>1.0</version>
+        </dependency>
+        <dependency>
             <groupId>com.alibaba.cloud</groupId>
             <artifactId>spring-cloud-starter-alibaba-seata</artifactId>
         </dependency>

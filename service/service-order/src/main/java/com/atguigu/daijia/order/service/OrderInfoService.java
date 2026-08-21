@@ -63,6 +63,8 @@ public interface OrderInfoService extends IService<OrderInfo> {
 
     void orderCancel(Long orderId);
 
+    void orderTimeoutCancel(Long orderId);
+
     Boolean isStartDrive(Long driverId, Long orderId);
 
     Boolean updateCouponAmount(Long orderId, BigDecimal couponAmount);

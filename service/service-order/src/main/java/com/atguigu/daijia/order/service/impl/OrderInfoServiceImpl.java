@@ -1,8 +1,10 @@
 package com.atguigu.daijia.order.service.impl;
 
+import com.atguigu.daijia.common.constant.MqConst;
 import com.atguigu.daijia.common.constant.RedisConstant;
 import com.atguigu.daijia.common.execption.GuiguException;
 import com.atguigu.daijia.common.result.ResultCodeEnum;
+import com.atguigu.daijia.common.service.RabbitService;
 import com.atguigu.daijia.common.util.IdUtils;
 import com.atguigu.daijia.model.convert.order.OrderInfoConvert;
 import com.atguigu.daijia.model.entity.base.BaseEntity;
@@ -32,6 +34,7 @@ import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
+import org.springframework.amqp.core.MessageBuilder;
 import org.springframework.beans.BeanUtils;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
@@ -81,6 +84,9 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
 
     @Resource
     private OrderDelayService orderDelayService;
+
+    @Resource
+    private RabbitService rabbitService;
 
 
     @Override
@@ -422,6 +428,11 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
         if (row == 1) {
             // 记录日志
             this.log(orderId, OrderStatus.UNPAID.getStatus());
+            // 投递支付超时关单的延迟消息：15 分钟后若仍未支付则自动关单
+            rabbitService.sendMessage(
+                    MqConst.EXCHANGE_CANCEL_ORDER_DELAY,
+                    MqConst.ROUTING_CANCEL_ORDER_DELAY,
+                    MessageBuilder.withBody(String.valueOf(orderId).getBytes()).build());
         } else {
             throw new GuiguException(ResultCodeEnum.UPDATE_ERROR);
         }
@@ -441,27 +452,29 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
     @Override
     @Transactional
     public Boolean updateOrderPayStatus(String orderNo) {
-        // 1 根据订单编号查询，判断订单状态
-        LambdaQueryWrapper<OrderInfo> wrapper = new LambdaQueryWrapper<>();
-        wrapper
-                .select(OrderInfo::getStatus, BaseEntity::getId)
-                .eq(OrderInfo::getOrderNo, orderNo);
-        OrderInfo orderInfo = baseMapper.selectOne(wrapper);
-        if (orderInfo == null || Objects.equals(orderInfo.getStatus(), OrderStatus.PAID.getStatus())) {
-            return Boolean.TRUE;
-        }
-
-        // 2 更新状态
-        orderInfo.setStatus(OrderStatus.PAID.getStatus());
-        orderInfo.setPayTime(LocalDateTime.now());
-
-        int rows = baseMapper.updateById(orderInfo);
-
+        // 仅当订单仍处于待付款(UNPAID)状态时才更新为已支付(PAID)，
+        // 避免与"支付超时关单"发生竞态，导致已关单的订单又被置为已支付
+        LambdaUpdateWrapper<OrderInfo> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper
+                .set(OrderInfo::getStatus, OrderStatus.PAID.getStatus())
+                .set(OrderInfo::getPayTime, LocalDateTime.now())
+                .eq(OrderInfo::getOrderNo, orderNo)
+                .eq(OrderInfo::getStatus, OrderStatus.UNPAID.getStatus());
+        int rows = baseMapper.update(null, updateWrapper);
         if (rows == 1) {
             return Boolean.TRUE;
-        } else {
-            throw new GuiguException(ResultCodeEnum.UPDATE_ERROR);
         }
+
+        // 更新失败（rows == 0）：可能是已支付（幂等），也可能是已被超时关单
+        OrderInfo orderInfo = baseMapper.selectOne(new LambdaQueryWrapper<OrderInfo>()
+                .select(OrderInfo::getStatus)
+                .eq(OrderInfo::getOrderNo, orderNo));
+        if (orderInfo != null && Objects.equals(orderInfo.getStatus(), OrderStatus.PAID.getStatus())) {
+            // 已支付，幂等返回
+            return Boolean.TRUE;
+        }
+        // 订单已被超时关单或其他异常状态，拒绝支付成功
+        throw new GuiguException(ResultCodeEnum.CANCEL_ORDER);
     }
 
     @Override
@@ -505,6 +518,29 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
         // 删除接单标识
 
         stringRedisTemplate.delete(RedisConstant.ORDER_ACCEPT_MARK + orderId);
+    }
+
+    /**
+     * 支付超时关单业务逻辑
+     * 仅当订单仍处于待付款(UNPAID)状态时才关单，保证幂等；
+     * 若用户已支付或订单已被关闭，则不做任何处理。
+     */
+    @Override
+    public void orderTimeoutCancel(Long orderId) {
+        // 查询订单当前状态
+        LambdaQueryWrapper<OrderInfo> wrapper = new LambdaQueryWrapper<OrderInfo>()
+                .select(BaseEntity::getId, OrderInfo::getStatus)
+                .eq(BaseEntity::getId, orderId);
+        OrderInfo orderInfo = baseMapper.selectOne(wrapper);
+        // 订单不存在或已不是"待付款"状态（已支付/已取消），直接返回，避免重复关单
+        if (orderInfo == null || !Objects.equals(OrderStatus.UNPAID.getStatus(), orderInfo.getStatus())) {
+            return;
+        }
+        // 置为超时取消状态
+        orderInfo.setStatus(OrderStatus.ORDER_TIMEOUT.getStatus());
+        baseMapper.updateById(orderInfo);
+        // 记录状态流水
+        this.log(orderId, OrderStatus.ORDER_TIMEOUT.getStatus());
     }
 
     @Override
